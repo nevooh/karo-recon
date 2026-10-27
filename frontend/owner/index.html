@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>Zuvy Owner</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:15px system-ui,sans-serif;background:#f4f6f8;color:#1a2330}
+.wrap{max-width:860px;margin:0 auto;padding:16px}
+.card{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px #0002}
+h1{font-size:20px;margin:0 0 12px}h2{font-size:16px;margin:0 0 12px}
+input{width:100%;padding:10px;margin:4px 0 12px;border:1px solid #c7cfd8;border-radius:8px;font:inherit}
+button{background:#0b6b4f;color:#fff;border:0;padding:10px 16px;border-radius:8px;font:inherit;cursor:pointer}
+button.ghost{background:#e6ebf0;color:#1a2330}
+.err{color:#b00020;margin:8px 0}.ok{background:#e8f6ee;border:1px solid #9bd3b4;padding:12px;border-radius:8px;margin-top:12px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid #e3e8ee}
+.n{text-align:right}.top{display:flex;justify-content:space-between;align-items:center}
+code{font-size:16px;background:#fff;padding:2px 6px;border-radius:4px;user-select:all}
+.tbl{overflow-x:auto}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}@media(max-width:640px){.grid{grid-template-columns:1fr}}
+</style></head><body><div class="wrap" id="app"></div>
+<script>
+const app = document.getElementById('app');
+let token = ''; try { token = sessionStorage.getItem('ownerToken') || ''; } catch (e) {}
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(path, body) {
+  const r = await fetch('/api/owner' + path, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401 && token) { signOut(); throw new Error('Please sign in again.'); }
+  if (!r.ok) throw new Error(j.error || 'Something went wrong.');
+  return j;
+}
+function signOut() { token = ''; try { sessionStorage.removeItem('ownerToken'); } catch (e) {} login(); }
+function login(msg) {
+  app.innerHTML = `<div class="card" style="max-width:380px;margin:60px auto"><h1>Zuvy Owner</h1>
+  <label>Email<input id="e" type="email" autocomplete="username"></label>
+  <label>Password<input id="p" type="password" autocomplete="current-password"></label>
+  <button id="go">Sign in</button><div class="err" id="m">${esc(msg || '')}</div></div>`;
+  const go = async () => { try { const j = await api('/login', { email: e.value, password: p.value }); token = j.token; try { sessionStorage.setItem('ownerToken', token); } catch (x) {} home(); } catch (x) { m.textContent = x.message; } };
+  document.getElementById('go').onclick = go; p.onkeydown = (ev) => { if (ev.key === 'Enter') go(); };
+}
+async function home(created) {
+  let d; try { d = await api('/schools'); } catch (x) { return login(x.message); }
+  app.innerHTML = `<div class="top"><h1>Schools</h1><button class="ghost" id="out">Sign out</button></div>
+  <div class="grid"><div class="card"><b>${d.total_schools}</b><br>schools</div><div class="card"><b>${d.total_students}</b><br>students in total</div></div>
+  <div class="card"><h2>Add a school</h2>
+    <label>School name<input id="n"></label><label>Main admin's full name<input id="an"></label><label>Main admin's email<input id="ae" type="email"></label>
+    <button id="add">Add school</button><div class="err" id="m"></div><div id="made">${created || ''}</div></div>
+  <div class="card tbl"><table><tr><th>School</th><th>Main admin</th><th class="n">Students</th></tr>
+  ${d.schools.map((s) => `<tr><td>${esc(s.name)}</td><td>${esc(s.admin_name || '-')}<br><small>${esc(s.admin_email || '')}${s.admin_status && s.admin_status !== 'active' ? ' (' + esc(s.admin_status) + ')' : ''}</small></td><td class="n">${s.students}</td></tr>`).join('') || '<tr><td colspan="3">No schools yet.</td></tr>'}</table></div>`;
+  out.onclick = signOut;
+  add.onclick = async () => {
+    add.disabled = true;
+    try {
+      const j = await api('/schools', { name: n.value, adminName: an.value, adminEmail: ae.value });
+      home(`<div class="ok"><b>${esc(j.school.name)}</b> added.<br>Admin login: ${esc(j.admin.email)}<br>Password: <code>${esc(j.password)}</code><br><small>Shown once. Copy it and send it to the admin now. They can change it after signing in.</small></div>`);
+    } catch (x) { m.textContent = x.message; add.disabled = false; }
+  };
+}
+token ? home() : login();
+</script></body></html>
