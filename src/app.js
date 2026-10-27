@@ -105,6 +105,17 @@ if (devRoutesEnabled) {
   });
 }
 
+// Short link for parents. PORTAL_HOST=pay.yourdomain.com makes that address open the parent portal straight away
+// (the staff app stays on the main address). /pay also works on any address and goes to the portal.
+const PORTAL_HOST = String(process.env.PORTAL_HOST || '').trim().toLowerCase();
+app.use((req, res, next) => {
+  if (PORTAL_HOST && String(req.hostname).toLowerCase() === PORTAL_HOST && !/^\/(api|webhooks|health)(\/|$)/.test(req.path)) {
+    req.url = '/portal' + (req.url === '/' ? '/' : req.url);
+  }
+  next();
+});
+app.get('/pay', (req, res) => res.redirect('/portal/'));
+
 // The admin screens, served from the same server (so no CORS setup is needed).
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
