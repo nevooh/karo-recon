@@ -291,7 +291,7 @@ async function stForgot(e) {
   if (!pw || document.getElementById('stForgotLink')) return;
   const d = document.createElement('div'); d.style.cssText = 'text-align:right;margin-top:8px;font-size:12.5px';
   d.innerHTML = '<a href="#" id="stForgotLink" style="color:var(--matched)">Forgot password?</a>';
-  pw.after(d);
+  (pw.closest('.pw-wrap') || pw).after(d);
   document.getElementById('stForgotLink').addEventListener('click', stForgot);
 })();
 

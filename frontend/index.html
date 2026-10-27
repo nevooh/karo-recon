@@ -10,24 +10,48 @@
 </head>
 <body>
 
-<!-- ============ LANDING PAGE (portfolio-style, one click to real login) ============ -->
+<!-- ============ LANDING PAGE (one click to the real staff login) ============ -->
 <div class="landing-wrap" id="landingScreen">
   <div class="landing-nav">
     <div class="login-brand">Karo Recon</div>
-    <button class="btn primary small" onclick="goToLogin()">Staff sign in &rarr;</button>
+    <div class="landing-nav-actions">
+      <a class="landing-link" href="/pay">Parents: pay fees</a>
+      <button class="btn primary small" onclick="goToLogin()">Staff sign in &rarr;</button>
+    </div>
   </div>
+
   <div class="landing-hero">
-    <h1 class="landing-h1">Fee reconciliation that actually understands how parents pay.</h1>
-    <p class="landing-p">M-Pesa, Equity, KCB, Co-op &mdash; every payment matched to the right student automatically, with siblings, typos, and messy references handled correctly. Anything uncertain waits for a human, never a guess.</p>
-    <button class="btn primary" style="width:auto;padding:12px 26px;font-size:14px;" onclick="goToLogin()">Sign in to your school &rarr;</button>
+    <div class="landing-kicker">School fee collection &amp; reconciliation</div>
+    <h1 class="landing-h1">Know who paid, for which child, the moment the money lands.</h1>
+    <p class="landing-p">Karo Recon reads every fee payment that reaches your M-Pesa Paybill and your school's bank accounts and matches it to the right student on its own. Siblings, typos and shared phone numbers are handled safely, and anything uncertain waits for a person instead of being guessed.</p>
+    <div class="landing-cta">
+      <button class="btn primary" style="width:auto;flex:none;padding:12px 26px;font-size:14px;" onclick="goToLogin()">Sign in to your school &rarr;</button>
+      <a class="btn-ghost" href="/pay">I am a parent</a>
+    </div>
   </div>
-  <div class="landing-features">
-    <div class="lf-card"><div class="lf-ic">&#9670;</div><h3>Handles siblings correctly</h3><p>When one phone pays for two kids, it asks &mdash; it never silently guesses which child the money belongs to.</p></div>
-    <div class="lf-card"><div class="lf-ic">&#9096;</div><h3>4 banks, one system</h3><p>M-Pesa, Equity, and KCB confirm payments in real time. Co-op is checked automatically every few minutes.</p></div>
-    <div class="lf-card"><div class="lf-ic">&#9888;</div><h3>Nothing touches a balance blindly</h3><p>Only confident matches auto-apply. Everything else sits in a review queue for a real person to confirm.</p></div>
-    <div class="lf-card"><div class="lf-ic">&#128274;</div><h3>Encrypted, per-school</h3><p>Every school's bank credentials are encrypted separately &mdash; one school's keys are never visible to another.</p></div>
+
+  <div class="landing-section">
+    <h2 class="landing-h2">How a payment is handled</h2>
+    <div class="steps">
+      <div class="step"><div class="step-n">1</div><h3>The payment arrives</h3><p>Safaricom or the bank tells the school's own private address the moment a payment is made. Nobody uploads a statement or types anything in.</p></div>
+      <div class="step"><div class="step-n">2</div><h3>It is matched to a student</h3><p>The account number, the payer's name and phone are checked against your students. Only a confident match is applied. A payment that could be two children, or none, is held.</p></div>
+      <div class="step"><div class="step-n">3</div><h3>The balance and the record update</h3><p>The student's term balance drops, the payment appears in their history, and anything held goes to the Review queue for a person to confirm.</p></div>
+    </div>
   </div>
-  <div class="landing-foot">Built for Kenyan schools &middot; term-aware, CBC-ready, multi-bank from day one</div>
+
+  <div class="landing-section">
+    <h2 class="landing-h2">What your school gets</h2>
+    <div class="landing-features">
+      <div class="lf-card"><div class="lf-ic">&#9670;</div><h3>Siblings handled correctly</h3><p>When one phone pays for two children, the system asks. It never silently decides which child the money belongs to.</p></div>
+      <div class="lf-card"><div class="lf-ic">&#9888;</div><h3>A review queue, not guesses</h3><p>Uncertain and unmatched payments wait in one place with the reason they were held, until a real person decides.</p></div>
+      <div class="lf-card"><div class="lf-ic">&#9776;</div><h3>Fees, terms and balances</h3><p>Fee structure per class, terms, optional fees and balances brought forward, so each student's balance is worked out from your own fee set-up.</p></div>
+      <div class="lf-card"><div class="lf-ic">&#9638;</div><h3>Reports and an activity log</h3><p>See what was collected, what is outstanding, and who changed what and when. Every important action is recorded.</p></div>
+      <div class="lf-card"><div class="lf-ic">&#128241;</div><h3>A portal for parents</h3><p>Parents sign in with their phone number, see each child's fees, payments and receipts, and can pay by an M-Pesa prompt on their phone or from the M-Pesa menu.</p></div>
+      <div class="lf-card"><div class="lf-ic">&#128274;</div><h3>Private to each school</h3><p>Each school's payment keys are encrypted separately and never shown again after they are saved. Staff have their own sign-ins and roles, and sensitive actions ask for a PIN.</p></div>
+    </div>
+  </div>
+
+  <div class="landing-foot">Built for Kenyan schools &middot; Karo Recon by Zuvy Technologies</div>
 </div>
 
 <!-- ============ LOGIN SCREEN ============ -->
@@ -35,12 +59,12 @@
   <div class="login-box">
     <p class="back-link" onclick="backToLanding()">&larr; Back</p>
     <div class="login-brand">Karo Recon</div>
-    <p class="login-sub">Sign in to Test Academy's admin account</p>
+    <p class="login-sub">Sign in to your school's account</p>
     <div class="login-err" id="loginErr">Invalid email or password</div>
     <label class="field">Email</label>
     <input type="email" id="loginEmail" placeholder="you@school.ac.ke" autocomplete="username">
     <label class="field">Password</label>
-    <input type="password" id="loginPassword" placeholder="Enter your password">
+    <div class="pw-wrap"><input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password"><button type="button" class="pw-eye" id="pwEye" aria-label="Show password" title="Show password" onclick="togglePw()"><svg id="pwEyeIc" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
     <button class="btn primary wide" style="margin-top:18px;" onclick="attemptLogin()">Sign in</button>
     <p class="login-foot">No account yet? Ask your school admin to add you under Staff. You will get an email with a link.</p>
   </div>
@@ -143,6 +167,20 @@
   </div>
 </div>
 
+<script>
+function togglePw(){
+  var i=document.getElementById('loginPassword'), b=document.getElementById('pwEye'), show=i.type==='password';
+  i.type=show?'text':'password';
+  b.setAttribute('aria-label',show?'Hide password':'Show password'); b.title=show?'Hide password':'Show password';
+  document.getElementById('pwEyeIc').innerHTML=show
+    ? '<path d="M17.9 17.9A10.9 10.9 0 0 1 12 19C5 19 1 12 1 12a18.5 18.5 0 0 1 5.1-5.9M9.9 5.1A10.4 10.4 0 0 1 12 5c7 0 11 7 11 7a18.6 18.6 0 0 1-2.2 3.2M1 1l22 22"/>'
+    : '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>';
+  i.focus();
+}
+document.addEventListener('DOMContentLoaded',function(){
+  var e=document.getElementById('loginEmail'); if(e) e.addEventListener('keydown',function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); document.getElementById('loginPassword').focus(); } });
+});
+</script>
 <script src="js/sample-data.js"></script>
 <script src="js/app.js"></script>
 <script src="js/api.js"></script>
@@ -150,8 +188,6 @@
 <script src="js/live-screens.js"></script>
 <script src="js/page-balances.js"></script>
 <script src="js/page-student-sheet.js"></script>
-<script src="js/page-payments.js"></script>
-<script src="js/page-dashboard.js"></script>
 <script src="js/page-staff.js"></script>
 <script src="js/page-activity.js"></script>
 <script src="js/page-reports.js"></script>

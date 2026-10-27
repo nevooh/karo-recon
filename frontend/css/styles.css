@@ -29,6 +29,27 @@
     .landing-features{grid-template-columns:1fr;padding:0 18px;}
   }
 
+
+  /* ---- landing: extra sections, nav actions, password eye ---- */
+  .landing-nav-actions{display:flex;align-items:center;gap:18px;}
+  .landing-link{color:var(--muted);font-size:13px;text-decoration:none;}
+  .landing-link:hover{color:var(--ink);}
+  .landing-kicker{display:inline-block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--matched);border:1px solid var(--line);border-radius:20px;padding:5px 12px;margin-bottom:18px;}
+  .landing-cta{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;}
+  .btn-ghost{color:var(--ink);font-size:14px;text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:11px 22px;}
+  .btn-ghost:hover{background:var(--surface);}
+  .landing-section{max-width:920px;margin:46px auto 0;padding:0 24px;}
+  .landing-h2{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:600;margin:0 0 16px;}
+  .landing-section .landing-features{padding:0;margin:0;max-width:none;}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .step{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;}
+  .step-n{width:26px;height:26px;border-radius:50%;background:var(--surface-raised);border:1px solid var(--line);color:var(--matched);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+  .step h3{font-size:14px;margin:0 0 6px;} .step p{color:var(--muted);font-size:12.5px;line-height:1.6;margin:0;}
+  .pw-wrap{position:relative;}
+  .pw-wrap input{padding-right:42px;}
+  .pw-eye{position:absolute;right:4px;top:0;height:100%;max-height:40px;width:38px;background:none;border:0;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .pw-eye:hover{color:var(--ink);}
+  @media(max-width:700px){ .steps{grid-template-columns:1fr;} .landing-section{padding:0 18px;} .landing-nav-actions{gap:12px;} }
   /* ============ LOGIN SCREEN ============ */
   .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
   .login-box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:36px 32px;max-width:380px;width:100%;}
