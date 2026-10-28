@@ -109,7 +109,7 @@ if (devRoutesEnabled) {
 // (the staff app stays on the main address). /pay also works on any address and goes to the portal.
 const PORTAL_HOST = String(process.env.PORTAL_HOST || '').trim().toLowerCase();
 app.use((req, res, next) => {
-  if (PORTAL_HOST && String(req.hostname).toLowerCase() === PORTAL_HOST && !/^\/(api|webhooks|health)(\/|$)/.test(req.path)) {
+   if (PORTAL_HOST && String(req.hostname).toLowerCase() === PORTAL_HOST && !/^\/(api|webhooks|health)(\/|$)/.test(req.path) && !/^\/(favicon|apple-touch-icon)/.test(req.path)) {
     req.url = '/portal' + (req.url === '/' ? '/' : req.url);
   }
   next();
