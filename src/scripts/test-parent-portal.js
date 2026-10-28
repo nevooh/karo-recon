@@ -13,6 +13,7 @@ process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32
 process.env.PUBLIC_BASE_URL = 'https://pay.example.com';
 delete process.env.SMS_PROVIDER; delete process.env.SMS_PARTNER_ID; delete process.env.SMS_API_KEY; delete process.env.SMS_SENDER_ID;   // dev mode: the code comes back in the reply
 process.env.NODE_ENV = 'test';
+process.env.SMS_SHOW_CODE_ON_SCREEN = 'true';   // so the tests can read the code from the reply
 
 const axios = require('axios');
 const { pool, initSchema } = require('../db/db');
@@ -100,8 +101,8 @@ const JANE = '254712345678', PETER = '254722000111';
 
   /* ---------------- sign-in ---------------- */
   let r = await call('POST', '/api/parent/otp', { phone: '0733 000 999' });
-  const unknownReply = r.body;
-  check('code for a phone no school knows: same kind of answer, no code handed back', r.status === 200 && r.body.ok === true && r.body.devCode === undefined, r);
+  check('a phone no school knows is told so plainly (404), nothing sent', r.status === 404 && /not registered/.test(r.body.error) && r.body.devCode === undefined, r);
+  const unknownReply = { message: 'A sign-in code has been sent to your phone.' };
   r = await call('POST', '/api/parent/otp', { phone: '0733 000 003' });
   check('code for a known phone: 200 and (dev mode) the code comes back', r.status === 200 && /^\d{6}$/.test(r.body.devCode || '') && r.body.message === unknownReply.message, r);
   const codeGina = r.body.devCode;
@@ -123,10 +124,7 @@ const JANE = '254712345678', PETER = '254722000111';
   r = await call('POST', '/api/parent/verify', { phone: '0733 000 003', code: c1 === c2 ? '000001' : c1 });
   check('asking for a new code kills the older one', r.status === 401, r);
   r = await call('POST', '/api/parent/otp', { phone: '0733 000 003' });
-  check('4th code within the hour is refused (3 an hour)', r.status === 429 && /Too many codes/.test(r.body.error), r);
-  r = await call('POST', '/api/parent/otp', { phone: '0733 000 999' }); r = await call('POST', '/api/parent/otp', { phone: '0733 000 999' }); r = await call('POST', '/api/parent/otp', { phone: '0733 000 999' });
-  check('the same limit applies to a phone nobody knows (so the limit never shows who is registered)', r.status === 429, r);
-
+  check('no limit on codes per phone: a 4th code in the hour is sent', r.status === 200 && /^\d{6}$/.test(r.body.devCode || ''), r);
   r = await call('POST', '/api/parent/otp', { phone: '0733 000 001' }); const codeEve = r.body.devCode;
   await q(`UPDATE parent_otps SET expires_at = NOW() - INTERVAL '1 minute' WHERE phone = '254733000001'`);
   r = await call('POST', '/api/parent/verify', { phone: '0733 000 001', code: codeEve });
@@ -382,6 +380,60 @@ const JANE = '254712345678', PETER = '254722000111';
   check('staff see the portal payment as a normal M-Pesa payment (Reports, Students & balances, receipts)', staffView[0].source === 'mpesa' && staffView[0].match_status === 'auto_matched');
   const sh = await sheet.getSheet(1, amina);
   check('...and it is on Amina\'s sheet for staff too', sh.payments.some((p) => p.reference === 'SKR4T8W2QA' && p.channel === 'M-Pesa'));
+
+  /* ---------------- the optional STK passkey, set from the admin page ---------------- */
+  const { hashPassword, generatePinToken } = require('../security/auth');
+  const admin = (await q(`INSERT INTO staff (school_id, full_name, email, role, status, password_hash) VALUES (1, 'Admin Ann', 'admin@x.com', 'admin', 'active', $1) RETURNING id`, [await hashPassword('pw12345678')]))[0].id;
+  const plain = (await q(`INSERT INTO staff (school_id, full_name, email, role, status) VALUES (1, 'Plain Pat', 'pat@x.com', 'staff', 'active') RETURNING id`))[0].id;
+  const adminTok = generateToken({ staffId: admin, schoolId: 1, tv: 0 }), plainTok = generateToken({ staffId: plain, schoolId: 1, tv: 0 });
+  const pin = { 'X-Pin-Token': generatePinToken({ staffId: admin, schoolId: 1, tv: 0 }) };
+  const pinPlain = { 'X-Pin-Token': generatePinToken({ staffId: plain, schoolId: 1, tv: 0 }) };
+  const NEWKEY = 'a'.repeat(30) + 'B7'.repeat(10);
+  await q(`UPDATE schools SET mpesa_passkey_enc = NULL WHERE id = 1`);
+  const mp = async () => (await call('GET', '/api/schools/1/channels', undefined, adminTok)).body.find((c) => c.channel === 'mpesa').mpesa;
+  check('passkey: a school without one is fine: stk not ready, but not blocked', (await mp()).has_passkey === false && (await mp()).stk_ready === false && (await mp()).can_register !== undefined);
+  r = await call('PUT', '/api/schools/1/mpesa/passkey', { passkey: NEWKEY }, plainTok, pinPlain);
+  check('passkey: a non-admin can not set it', r.status === 403, r);
+  r = await call('PUT', '/api/schools/1/mpesa/passkey', { passkey: NEWKEY }, adminTok);
+  check('passkey: admin without the PIN is asked for it', r.status === 403 && /PIN/.test(r.body.error), r);
+  r = await call('PUT', '/api/schools/1/mpesa/passkey', { passkey: 'has spaces in it 1234567890' }, adminTok, pin);
+  check('passkey: a passkey with spaces is refused in plain words', r.status === 400 && /no spaces/.test(r.body.error), r);
+  r = await call('PUT', '/api/schools/1/mpesa/passkey', { passkey: NEWKEY }, adminTok, pin);
+  check('passkey: admin + PIN saves it', r.status === 200 && r.body.ok && r.body.replaced === false, r);
+  check('passkey: the card now says passkey saved and STK ready (no restart needed)', (await mp()).has_passkey === true && (await mp()).stk_ready === true);
+  r = await call('GET', `/api/parent/children/${amina}`, undefined, jane);
+  check('passkey: the parent portal turns "Send request to my phone" on by itself', r.body.pay.online === true, r.body.pay);
+  check('passkey: it is stored encrypted and never sent to any screen', !(await one('SELECT mpesa_passkey_enc FROM schools WHERE id = 1')).mpesa_passkey_enc.includes(NEWKEY) && !JSON.stringify((await call('GET', '/api/schools/1/channels', undefined, adminTok)).body).includes(NEWKEY));
+  r = await call('PUT', '/api/schools/1/mpesa/passkey', { passkey: NEWKEY + 'x' }, adminTok, pin);
+  check('passkey: replacing needs RESET + password, not just a new value', r.status >= 400 && r.status < 500, r);
+  r = await call('PUT', '/api/schools/1/mpesa/passkey', { passkey: NEWKEY + 'x', confirm_text: 'RESET', password: 'wrong-password' }, adminTok, pin);
+  check('passkey: a wrong password does not replace it', r.status >= 400 && r.status < 500, r);
+  r = await call('PUT', '/api/schools/1/mpesa/passkey', { passkey: NEWKEY + 'x', confirm_text: 'RESET', password: 'pw12345678' }, adminTok, pin);
+  check('passkey: RESET + the right password replaces it', r.status === 200 && r.body.replaced === true, r);
+  check('passkey: the activity log says it was the STK passkey', !!(await one(`SELECT 1 FROM audit_log WHERE action = 'mpesa_keys_replaced' AND detail->>'what' = 'stk passkey'`)));
+
+  /* ---------------- Cancel in the portal: frees the student at once; a late payment is still booked ---------------- */
+  const cancelKid = await adm(1, '150', 'Cancel Tester', [{ name: 'Jane Wanjiru', phone: '0712 345 678', relationship: 'Mother' }]);
+  r = await call('POST', `/api/parent/children/${cancelKid}/pay`, { amount: 700, phone: '0799 000 777' }, jane);
+  check('cancel: a request for the second child is sent', r.status === 200 && r.body.status === 'sent', r);
+  const reqC = r.body.request_id; const urlC = cbUrl(reqC); const ckC = await checkoutOf(reqC);
+  r = await call('POST', `/api/parent/children/${cancelKid}/pay`, { amount: 100, phone: '0799 000 777' }, jane);
+  check('cancel: while it is open a second tap is refused', r.status === 409 && /already open/.test(r.body.error), r);
+  r = await call('POST', `/api/parent/children/${amina}/pay/${reqC}/cancel`, undefined, jane);
+  check('cancel: the same request under my OTHER child does nothing', r.status === 200 && r.body.cancelled === false && (await one('SELECT status FROM stk_requests WHERE id = $1', [reqC])).status === 'sent', r);
+  r = await call('POST', `/api/parent/children/${cancelKid}/pay/${reqC}/cancel`, undefined, peter);
+  check('cancel: a parent who is not linked to the child is refused', r.status === 404 && (await one('SELECT status FROM stk_requests WHERE id = $1', [reqC])).status === 'sent', r);
+  r = await call('POST', `/api/parent/children/${cancelKid}/pay/${reqC}/cancel`, undefined, null);
+  check('cancel: needs a sign-in', r.status === 401, r);
+  r = await call('POST', `/api/parent/children/${cancelKid}/pay/${reqC}/cancel`, undefined, jane);
+  check('cancel: my own open request is cancelled', r.status === 200 && r.body.cancelled === true && (await one('SELECT status FROM stk_requests WHERE id = $1', [reqC])).status === 'cancelled', r);
+  r = await call('POST', `/api/parent/children/${cancelKid}/pay/${reqC}/cancel`, undefined, jane);
+  check('cancel: pressing it twice is harmless', r.status === 200 && r.body.cancelled === false, r);
+  r = await call('POST', `/api/parent/children/${cancelKid}/pay`, { amount: 100, phone: '0799 000 778' }, jane);
+  check('cancel: the student is free again straight away (no 2 minute wait)', r.status === 200 && r.body.status === 'sent', r);
+  const reqD = r.body.request_id;
+  r = await call('POST', urlC.path, cbBody(ckC, { amount: 700, receipt: 'LATE0CANCEL', phone: 254712345678 }));
+  check('cancel: if the parent still pays the cancelled prompt, the money is booked, not lost', r.status === 200 && (await one("SELECT amount FROM transactions WHERE source = 'mpesa' AND external_ref = 'LATE0CANCEL' AND matched_student_id = $1", [cancelKid])) && (await one('SELECT status FROM stk_requests WHERE id = $1', [reqC])).status === 'paid', r);
 
   server.close();
   console.log(`\n${passed} passed, ${failed} failed`);

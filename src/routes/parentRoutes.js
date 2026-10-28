@@ -14,6 +14,7 @@
 //   GET  /api/parent/children/:studentId/payments/:txnId/receipt   -> one printable receipt
 //   POST /api/parent/children/:studentId/pay                 { amount, phone? }        -> { request_id, status, message }  "Send request to my phone"
 //   GET  /api/parent/children/:studentId/pay/:requestId      -> { id, status, amount, receipt, message }  poll every ~3 s until status is not created/sent
+//   POST /api/parent/children/:studentId/pay/:requestId/cancel -> { ok, cancelled }  stop waiting now (a late payment is still booked)
 const express = require('express');
 const { requireParent } = require('../middleware/parentAuth');
 const parentAuth = require('../services/parentAuth');
@@ -78,6 +79,10 @@ router.post('/children/:studentId/pay', requireParent, wrap(async (req, res) => 
 
 router.get('/children/:studentId/pay/:requestId', requireParent, wrap(async (req, res) => {
   res.json(await portal.getPaymentStatus(req.parent.phone, req.params.studentId, req.params.requestId));
+}));
+
+router.post('/children/:studentId/pay/:requestId/cancel', requireParent, wrap(async (req, res) => {
+  res.json(await portal.cancelPayment(req.parent.phone, req.params.studentId, req.params.requestId));
 }));
 
 module.exports = router;

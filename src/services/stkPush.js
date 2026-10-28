@@ -22,7 +22,9 @@ const { getSelected } = require('./channels');
 
 const MAX_AMOUNT = Number(process.env.STK_MAX_AMOUNT) > 0 ? Number(process.env.STK_MAX_AMOUNT) : 150000;
 const OPEN_MINUTES = 2;
-const PHONE_LIMIT = 3, PHONE_WINDOW_MINUTES = 10;
+// At most this many requests to one phone in the window. STK_PHONE_LIMIT=0 in .env switches the limit OFF (for testing).
+const PHONE_LIMIT = (process.env.STK_PHONE_LIMIT || '').trim() !== '' && Number.isFinite(Number(process.env.STK_PHONE_LIMIT)) ? Number(process.env.STK_PHONE_LIMIT) : 3;
+const PHONE_WINDOW_MINUTES = 10;
 const IN_SCHOOL = ['active', 'repeating'];
 
 function refuse(message, status = 400) { const e = new Error(message); e.status = status; return e; }
@@ -67,7 +69,7 @@ async function createPush({ schoolId, studentId, phone, amount }, deps = {}) {
     const open = await client.query(`SELECT 1 FROM stk_requests WHERE student_id = $1 AND status IN ('created', 'sent') AND created_at > NOW() - make_interval(mins => $2) LIMIT 1`, [stId, OPEN_MINUTES]);
     if (open.rowCount) throw refuse(`A payment request for this student is already open. Check your phone, or wait ${OPEN_MINUTES} minutes and try again.`, 409);
     const recent = await client.query(`SELECT COUNT(*)::int AS n FROM stk_requests WHERE phone = $1 AND created_at > NOW() - make_interval(mins => $2)`, [msisdn, PHONE_WINDOW_MINUTES]);
-    if (recent.rows[0].n >= PHONE_LIMIT) throw refuse(`Too many requests to this phone. Please wait ${PHONE_WINDOW_MINUTES} minutes.`, 429);
+    if (PHONE_LIMIT > 0 && recent.rows[0].n >= PHONE_LIMIT) throw refuse(`Too many requests to this phone. Please wait ${PHONE_WINDOW_MINUTES} minutes.`, 429);
     requestId = (await client.query(
       `INSERT INTO stk_requests (school_id, student_id, phone, amount, account_ref, callback_token_hash) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
       [sId, stId, msisdn, n, student.admission_no, sha256(token)])).rows[0].id;
@@ -108,4 +110,18 @@ async function getPushStatus(requestId, schoolId, studentId, deps = {}) {
   return { id: r.id, status: r.status, amount: Number(r.amount), receipt: r.status === 'paid' ? r.mpesa_receipt : null, message: MESSAGE[r.status] || MESSAGE.failed };
 }
 
-module.exports = { createPush, getPushStatus, MAX_AMOUNT, OPEN_MINUTES, PHONE_LIMIT, sha256 };
+/**
+ * The parent pressed Cancel in the portal: stop waiting NOW so the student is free for a new request (the "already open" rule only
+ * looks at created / sent). Money is never lost by this: if the parent still pays the prompt on the phone, the late PAID message
+ * (or the normal Paybill alert) books it, exactly as for a timed-out request. Only this school's and this student's open request.
+ */
+async function cancelPush(requestId, schoolId, studentId, deps = {}) {
+  const db = deps.pool || pool;
+  const r = await db.query(
+    `UPDATE stk_requests SET status = 'cancelled', result_desc = 'Stopped by the parent in the portal', finished_at = NOW()
+     WHERE id = $1 AND school_id = $2 AND student_id = $3 AND status IN ('created', 'sent') RETURNING id`,
+    [Number(requestId) || 0, Number(schoolId), Number(studentId)]);
+  return { cancelled: r.rowCount > 0 };
+}
+
+module.exports = { createPush, getPushStatus, cancelPush, MAX_AMOUNT, OPEN_MINUTES, PHONE_LIMIT, sha256 };

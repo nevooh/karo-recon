@@ -20,7 +20,7 @@ const { getCurrentTerm } = require('./feeLedger');
 const { startedTerms } = require('./balances');
 const { getSelected } = require('./channels');
 const { getReceipt: getSheetReceipt, METHODS } = require('./studentSheet');
-const { createPush, getPushStatus, MAX_AMOUNT } = require('./stkPush');
+const { createPush, getPushStatus, cancelPush, MAX_AMOUNT } = require('./stkPush');
 const { refreshIfStale } = require('./stkCallback');
 const { assertCallbackUrlAllowed } = require('../connectors/mpesa');
 
@@ -220,4 +220,12 @@ async function getPaymentStatus(msisdn, studentId, requestId, deps = {}) {
   return st;
 }
 
-module.exports = { listChildren, getHome, getFees, getPayments, getReceipt, startPayment, getPaymentStatus, phoneHasChildren, IN_SCHOOL };
+// "Cancel" in the sheet: stop waiting at once so a new request can be made straight away.
+async function cancelPayment(msisdn, studentId, requestId, deps = {}) {
+  const db = deps.pool || pool;
+  const s = await ownChild(db, msisdn, studentId);
+  const out = await (deps.cancelPush || cancelPush)(requestId, s.school_id, s.id, deps);
+  return { ok: true, cancelled: out.cancelled };
+}
+
+module.exports = { listChildren, getHome, getFees, getPayments, getReceipt, startPayment, getPaymentStatus, cancelPayment, phoneHasChildren, IN_SCHOOL };

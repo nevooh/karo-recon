@@ -300,7 +300,11 @@
         (slow ? '<p style="margin-top:14px;font-size:12.5px">This is taking longer than usual. If money left your phone, it will show under Payments shortly.</p>'
               : '<p style="margin-top:14px;font-size:12.5px">Waiting for M-Pesa... ' + (left > 0 ? '<span class="mono">' + left + '</span>s' : '') + '</p>') +
         '<button class="btn" style="margin-top:18px" id="wc">' + (slow ? 'Close' : 'Cancel') + '</button></div>';
-      $('wc').onclick = function () { closePay(); draw(); };
+      $('wc').onclick = function () {
+        S.payRun++;                                                   // stop polling
+        if (!slow) api('POST', '/children/' + c.id + '/pay/' + requestId + '/cancel').catch(function () { /* the request times out by itself */ });
+        closePay(); draw();
+      };
     }
     paint();
     var tick = setInterval(function () { if (run !== S.payRun) return clearInterval(tick); if ($('wc')) paint(); }, 1000);
