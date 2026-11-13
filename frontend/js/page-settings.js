@@ -57,17 +57,67 @@ function settingsRow(c, admin) {
     '<div class="fields" style="margin:8px 0 0;">' + esc(c.how) + '</div>' + note + '</label>';
 }
 
+/* ---- one bank + M-Pesa ---- */
+function settingsBanks() { return settingsPage.list.filter(function (c) { return c.channel !== 'mpesa'; }); }
+
+function settingsChannelsHtml(admin) {
+  const banks = settingsBanks(), mp = settingsPage.list.find(function (c) { return c.channel === 'mpesa'; });
+  const chosen = banks.filter(function (c) { return c.selected; });
+  const many = chosen.length > 1;                                   // a school that already has two banks on is left as it is
+  const locked = chosen.length === 1 && !settingsPage.unlocked;
+  const can = admin && !settingsPage.busy;
+  let html = '<h2 class="sp-h">Your bank</h2><p class="sub" style="margin-bottom:10px;">' +
+    (chosen.length === 0 ? 'Pick the bank your school collects fees in. You do this once. Only this bank appears on the Bank connections page.'
+      : many ? 'More than one bank is switched on for this school. You can leave it that way, or ask the Zuvy team to help change it.'
+      : locked ? 'This is the bank your school collects fees in. It is locked so nobody changes it by accident.'
+      : 'Pick your new bank. The old bank is not disconnected: it still receives payments and its history stays. It is only hidden from Bank connections.') + '</p>';
+  if (!admin) html += '<p class="sub" style="color:var(--cash);">Only an Admin can change these. Ask an Admin of this school.</p>';
+  html += '<div class="bank-grid" style="grid-template-columns:1fr;">' + banks.map(function (c) {
+    if (many) return settingsRow(c, admin);
+    const on = c.selected, dis = !can || locked;
+    return '<label class="bank-card" style="display:block;cursor:' + (dis ? 'default' : 'pointer') + ';' + (on ? 'border-color:var(--matched);' : '') + (locked && !on ? 'opacity:.55;' : '') + '">' +
+      '<div style="display:flex;align-items:center;gap:10px;"><input type="radio" name="spBank" ' + (on ? 'checked ' : '') + (dis ? 'disabled ' : '') + 'onchange="settingsPickBank(\'' + c.channel + '\')">' +
+      '<h3 style="margin:0;flex:1;">' + esc(c.label) + '</h3>' + (on ? '<span style="font-size:11.5px;color:var(--matched);">Your bank</span>' : '') + '</div>' +
+      '<div class="fields" style="margin:8px 0 0;">' + esc(c.how) + '</div>' +
+      (on && c.status === 'connected' ? '<div class="fields" style="margin:6px 0 0;color:var(--cash);">Receiving payments (' + c.payments + ')</div>' : '') + '</label>';
+  }).join('') + '</div>';
+  if (locked && can) html += '<div style="margin-top:10px;"><button type="button" class="sp-btn" onclick="settingsChangeBank()">Change bank</button></div>';
+  if (settingsPage.unlocked && !many) html += '<div style="margin-top:10px;"><button type="button" class="sp-btn" onclick="settingsCancelChange()">Cancel</button></div>';
+  html += '<h2 class="sp-h" style="margin-top:26px;">Mobile money</h2><p class="sub" style="margin-bottom:10px;">Switch M-Pesa on if parents also pay through a paybill or till. It appears on the Bank connections page while it is on.</p>';
+  if (mp) html += '<div class="bank-grid" style="grid-template-columns:1fr;">' + settingsRow(mp, admin) + '</div>';
+  return html;
+}
+
+// First pick, or the new bank after "Change bank". We send the WHOLE list: the chosen bank, plus M-Pesa if it is on.
+window.settingsPickBank = async function (channel) {
+  if (settingsPage.busy) return;
+  const mp = settingsPage.list.some(function (c) { return c.channel === 'mpesa' && c.selected; });
+  const label = (settingsPage.list.find(function (c) { return c.channel === channel; }) || {}).label || channel;
+  settingsPage.busy = true; settingsPage.error = ''; settingsPage.saved = ''; settingsRender();
+  try {
+    settingsPage.list = await Api.put('/schools/' + live.staff.school_id + '/channels', { channels: [channel].concat(mp ? ['mpesa'] : []) });
+    settingsPage.saved = label + ' is now your bank.'; settingsPage.unlocked = false;
+  } catch (e) { settingsPage.error = e.message; }
+  settingsPage.busy = false; settingsRender();
+};
+
+window.settingsChangeBank = async function () {
+  const go = await stDialog({ title: 'Change your bank?',
+    intro: 'Your school keeps one bank. The old bank is not disconnected: it still receives payments and its history stays, but it is hidden from Bank connections. The new bank needs its own set-up.',
+    fields: [{ id: 'word', label: 'Type CHANGE to continue', placeholder: 'CHANGE' }], okText: 'Continue', danger: true,
+    run: function (v) { if (String(v.word).trim().toUpperCase() !== 'CHANGE') throw new Error('Please type CHANGE to continue.'); return true; } });
+  if (!go) return;
+  settingsPage.unlocked = true; settingsPage.saved = ''; settingsPage.error = ''; settingsRender();
+};
+window.settingsCancelChange = function () { settingsPage.unlocked = false; settingsRender(); };
+
 function settingsRender() {
   const box = document.getElementById('settingsBody');
   if (!box || !settingsPage.list) return;
   const admin = settingsIsAdmin();
   box.innerHTML =
     '<div class="sp-wrap">' + settingsProfileHtml(admin) +
-    '<h2 class="sp-h">Payment channels</h2>' +
-    '<p class="sub" style="margin-bottom:6px;">Switch on the channels this school uses. Only those appear on the Bank connections page.</p>' +
-    '<p class="sub" style="margin-bottom:12px;">Switching one off only hides it. Nothing is disconnected, and payments that arrive are still saved. You can switch it back on any time.</p>' +
-    (admin ? '' : '<p class="sub" style="color:var(--cash);">Only an Admin can change these. Ask an Admin of this school.</p>') +
-    '<div class="bank-grid" style="grid-template-columns:1fr;">' + settingsPage.list.map(function (c) { return settingsRow(c, admin); }).join('') + '</div>' +
+    settingsChannelsHtml(admin) +
     '<div style="min-height:22px;margin-top:10px;font-size:12.5px;">' +
     (settingsPage.error ? '<span style="color:var(--alert);">' + esc(settingsPage.error) + '</span>' : (settingsPage.saved ? '<span style="color:var(--matched);">' + esc(settingsPage.saved) + '</span>' : '')) +
     '</div>' + settingsPinHtml(admin) + '</div>';
@@ -120,7 +170,7 @@ async function settingsLoad() {
 }
 
 views.settings = function () {
-  settingsPage.busy = false; settingsPage.error = ''; settingsPage.saved = ''; settingsPage.pmsg = ''; settingsPage.pbad = false;
+  settingsPage.busy = false; settingsPage.error = ''; settingsPage.saved = ''; settingsPage.pmsg = ''; settingsPage.pbad = false; settingsPage.unlocked = false;
   setTimeout(settingsLoad, 0);
   return '<div class="topbar"><div><h1>School settings</h1><p class="sub">How this school is set up in Karo Recon</p></div></div>' +
     '<div id="settingsBody"><p class="sub">Loading&hellip;</p></div>';

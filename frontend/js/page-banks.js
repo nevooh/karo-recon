@@ -62,10 +62,10 @@ function banksRender() {
   if (!box || !bankPage.list) return;
   const picked = bankPage.list.filter(function (c) { return c.selected; });
   if (!picked.length) {
-    box.innerHTML = '<div style="max-width:560px;margin-top:14px;"><h2 style="font-size:16px;margin:0 0 6px;">No payment channels are switched on yet</h2>' +
+    box.innerHTML = '<div style="max-width:560px;margin-top:14px;"><h2 style="font-size:16px;margin:0 0 6px;">No bank or M-Pesa is set up yet</h2>' +
       '<p class="sub" style="margin-bottom:12px;">' + (banksIsAdmin()
-        ? 'Choose the channels this school uses in ' + SETTINGS_LINK + '. They will appear here.'
-        : 'An Admin of this school must switch on the channels it uses in ' + SETTINGS_LINK + '.') + '</p></div>';
+        ? 'Pick your bank, and switch M-Pesa on if you use it, in ' + SETTINGS_LINK + '. They will appear here.'
+        : 'An Admin of this school must pick the bank and M-Pesa in ' + SETTINGS_LINK + '.') + '</p></div>';
     return;
   }
   const listening = bankPage.list.filter(function (c) { return !c.selected && c.payments > 0; });
