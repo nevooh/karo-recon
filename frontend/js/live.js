@@ -23,7 +23,7 @@ function enterApp(resume) {
   document.getElementById('landingScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'grid';
   let first = 'dashboard';
-  if (resume) { try { const s = sessionStorage.getItem('karo_view'); if (s && views[s] && s !== 'studentdetail') first = s; } catch (e) { /* ignore */ } }
+  if (resume && typeof shellHashView === 'function') first = shellHashView() || 'dashboard';   // a reload goes back to the page in the address
   showView(first);
 }
 

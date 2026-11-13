@@ -109,6 +109,8 @@ showView = function (name) {
     shell.timer = setInterval(function () { if (!document.hidden) shellRefreshDashboard('dashboard'); }, 60000);
   }
   if (name === 'terms' || name === 'dashboard') shellTerm();
+  // the page name goes into the address (#payments) so reload, Back and links work
+  if (name !== 'studentdetail' && location.hash !== '#' + name) { shell.fromHash = true; location.hash = name; }
 };
 async function shellRefreshDashboard(name) {
   try {
@@ -138,4 +140,18 @@ document.addEventListener('keydown', function (e) {
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
   const a = shellApp(); if (!a || a.style.display === 'none') return;
   shellToggleFold();
+});
+
+/* karo-hash-routing: read the page name from the address */
+function shellHashView() {
+  const h = (location.hash || '').replace(/^#/, '');
+  return (h && views[h] && h !== 'studentdetail' && h !== 'feeedits') ? h : null;
+}
+window.addEventListener('hashchange', function () {            // Back / Forward, or someone edits the address
+  if (shell.fromHash) { shell.fromHash = false; return; }      // we changed it ourselves a moment ago
+  const v = shellHashView(), app = shellApp();
+  if (!v || !app || app.style.display === 'none') return;      // not a page, or not logged in
+  const active = document.querySelector('.sidebar .nav.active');
+  if (active && active.dataset.view === v) return;
+  showView(v);
 });
