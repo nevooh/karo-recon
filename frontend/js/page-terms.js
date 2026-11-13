@@ -180,7 +180,8 @@ function tmAsk(k, r) {
   }).join('') + '</div>' : '';
   const text = p.note ? esc(p.note) : 'This term starts today or earlier, so billing runs right now: <b>' + p.studentsBilled + ' student' + (p.studentsBilled === 1 ? '' : 's') + '</b> in <b>' + p.classesBilled + ' class' + (p.classesBilled === 1 ? '' : 'es') + '</b> will be charged. Once a date is reached it locks, so check them.';
   return '<div class="tm-msg ask" role="alert">' + text + lines +
-    '<div class="tm-foot"><button type="button" class="tm-btn go" onclick="tmConfirm(\'' + k + '\')">Yes, start it now</button><button type="button" class="tm-btn" onclick="tmCancelAsk(\'' + k + '\')">Cancel</button></div></div>';
+    '<div class="tm-word-row" style="margin-top:12px"><label style="display:block;font-size:12.5px;margin-bottom:6px">To go ahead, type <b>CONFIRM</b></label><input type="text" class="tm-word" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CONFIRM" style="font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);width:160px" oninput="tmWordCheck(this)"></div>' +
+    '<div class="tm-foot"><button type="button" class="tm-btn go" disabled onclick="tmConfirm(\'' + k + '\', this)">Yes, start it now</button><button type="button" class="tm-btn" onclick="tmCancelAsk(\'' + k + '\')">Cancel</button></div></div>';
 }
 
 // typing/picking a date: remember it and update the buttons without redrawing (so the picker stays open)
@@ -199,7 +200,12 @@ function tmEdit(year, term, which, value) {
 }
 function tmUndo(year, term) { const k = tmKey(year, term); delete tm.drafts[k]; delete tm.errs[k]; delete tm.asks[k]; tmRender(); }
 function tmCancelAsk(k) { delete tm.asks[k]; tmRender(); }
-function tmConfirm(k) { const p = k.split('|'); tmSave(Number(p[0]), Number(p[1]), true); }
+function tmWordCheck(inp) { const box = inp.closest('.tm-msg'), b = box && box.querySelector('.tm-btn.go'); if (b) b.disabled = inp.value.trim().toUpperCase() !== 'CONFIRM'; }
+function tmConfirm(k, btn) {
+  const box = btn && btn.closest ? btn.closest('.tm-msg') : null, w = box ? box.querySelector('.tm-word') : null;
+  if (w && w.value.trim().toUpperCase() !== 'CONFIRM') { w.focus(); return; }
+  const p = k.split('|'); tmSave(Number(p[0]), Number(p[1]), true);
+}
 
 async function tmSave(year, term, confirmed) {
   const k = tmKey(year, term);

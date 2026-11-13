@@ -130,3 +130,12 @@ setTimeout(function () {
   const a = shellApp();
   if (a && a.style.display !== 'none' && live.staff) { try { shellSetFold(localStorage.getItem('karo_menu_folded') === '1', false); } catch (e) { shellSetFold(false, false); } shellLabelNav(); shellWho(); shellTerm(); }
 }, 0);
+
+// press [ to fold or open the menu (ignored while typing in a box)  /* karo-fold-key */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== '[' || e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target, tag = t && t.tagName ? t.tagName : '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+  const a = shellApp(); if (!a || a.style.display === 'none') return;
+  shellToggleFold();
+});

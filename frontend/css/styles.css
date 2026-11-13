@@ -1,5 +1,5 @@
 :root{
-    --bg:#F7F4EC; --surface:#FFFDF8; --surface-raised:#EFEAE0; --line:#E3DDC9;
+    --bg:#F3EDDF; --surface:#FBF8EF; --surface-raised:#EDE6D5; --line:#E0D8C2;
     --ink:#1B2A4A; --muted:#5B5F73;
     --mpesa:#2E8B3A; --bank:#3B5BA5; --cash:#8F6A21; --cheque:#A0694A;
     --alert:#B5482A; --matched:#2F6F62; --repeat:#A85A1F; --sibling:#8A5DA8;
@@ -364,16 +364,30 @@
   }
   @media(min-width:881px){ .bottom-nav, .drawer, .drawer-backdrop{display:none !important;} }
 
-  /* ============ ZUVYPAY LOOK: navy sidebar with gold accent ============ */
+  /* ============ ZUVYPAY LOOK: navy sidebar, gold accent, icons, quiet fold tab ============ */
   .sidebar{background:var(--navy);border-right:0;}
-  .sidebar .brand{color:#F7F4EC;border-bottom-color:rgba(255,255,255,.12);}
+  .sidebar .brand{color:#F7F4EC;border-bottom-color:rgba(255,255,255,.12);position:relative;padding-right:44px;}
   .sidebar .brand span,.sidebar .navsec{color:#8C9AC2;}
-  .sidebar .nav{color:#C9D0E6;}
-  .sidebar .nav:hover{color:#fff;}
-  .sidebar .nav.active{color:#fff;background:rgba(255,255,255,.08);border-left-color:var(--gold);}
+  .sidebar .navsec{padding-left:24px;}
+  .sidebar .nav{color:#C9D0E6;border-left:0;border-radius:8px;margin:1px 12px;padding:9px 12px;transition:background .15s,color .15s;}
+  .sidebar .nav:hover{color:#fff;background:rgba(255,255,255,.06);}
+  .sidebar .nav.active{color:#fff;background:rgba(184,134,47,.18);}
+  .sidebar .nav.active .ic{color:#E3B866;}
+  .nav .ic{display:inline-flex;width:18px;height:18px;align-items:center;justify-content:center;font-size:0;flex-shrink:0;}
+  .ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;display:block;}
+  .bnav-item .ic{display:block;font-size:0;margin:0 auto 2px;}
+  .bnav-item .ic svg{width:20px;height:20px;margin:0 auto;}
   .sidebar .sidebar-foot{border-top-color:rgba(255,255,255,.12);color:#8C9AC2;}
   .sidebar .term-badge{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:#EDEAE0;}
   .sidebar .term-badge .live{color:#8FD0BF;}
   .sidebar .who-row{color:#C9D0E6;}
   .sidebar .who-avatar{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:var(--gold);}
-  .sidebar .logout-link{color:#E8957A;}
+  .sidebar .logout-link{color:#E8957A;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:4px 9px;margin-left:auto;}
+  .sidebar .logout-link:hover{border-color:var(--gold);color:#fff;}
+  /* the fold tab: a quiet round arrow, faint until you move over the menu */
+  .sidebar .fold-btn{position:absolute;top:6px;right:10px;float:none;width:24px;height:24px;padding:0;margin:0;border:0;border-radius:50%;background:transparent;color:#C9D0E6;font-size:10px;line-height:24px;opacity:.3;transition:opacity .15s,background .15s;}
+  .sidebar:hover .fold-btn,.sidebar .fold-btn:focus-visible{opacity:1;}
+  .sidebar .fold-btn:hover{background:rgba(255,255,255,.12);color:#fff;border:0;}
+  .app.folded .sidebar .fold-btn{position:static;display:block;margin:0 auto 10px;opacity:.6;}
+  .app.folded .sidebar .brand{padding-right:0;}
+  .app.folded .sidebar .nav{margin:1px 8px;padding:11px 0;}
