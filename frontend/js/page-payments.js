@@ -3,7 +3,7 @@
    - Two separate columns: "Code" (the M-Pesa / bank transaction code) and "Paid for" (what the parent typed, usually the admission number).
    - Student name opens the student's full page. Filters: status pills with counts, channel, date range, search.
    - Dark-theme filters (the old ones were white). Read only. */
-const pm = { data: null, error: null, loadToken: 0, f: { status: '', source: '', from: '', to: '', q: '', offset: 0, limit: 25 }, timer: null };
+const pm = { data: null, error: null, loadToken: 0, f: { status: '', source: '', from: '', to: '', q: '', offset: 0, limit: 50 }, acc: null, moreBusy: false, timer: null };
 
 (function () {
   if (document.getElementById('pmStyle')) return;
@@ -39,6 +39,11 @@ const pm = { data: null, error: null, loadToken: 0, f: { status: '', source: '',
     '.pm-hand{display:block;font-size:11px;color:var(--muted);margin-top:2px}',
     '.pm-empty{text-align:center;padding:40px 20px;background:var(--surface);border:1px dashed var(--line);border-radius:16px;color:var(--muted);font-size:13.5px;line-height:1.6}',
     '.pm-pager{display:flex;justify-content:space-between;align-items:center;margin:12px 0;font-size:13px;color:var(--muted)}',
+    '#pmBody table{overflow:visible}',
+    '#pmBody thead th{position:sticky;top:0;z-index:2;background:var(--surface-raised)}',
+    '.pm-top{position:fixed;right:22px;bottom:22px;width:42px;height:42px;border-radius:50%;border:0;background:var(--navy);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 6px 18px rgba(27,42,74,.22);display:none;z-index:20}',
+    '.pm-top.show{display:block}',
+    '@media(max-width:880px){.pm-top{bottom:78px}}',
     '@media(max-width:760px){.pm-tiles{grid-template-columns:1fr}}',
   ].join('\n');
   document.head.appendChild(css);
@@ -49,7 +54,7 @@ const PM_LABEL = { auto_matched: 'Auto-matched', confirmed: 'Confirmed', needs_r
 const PM_METHOD = { cash: 'Cash', mpesa: 'M-Pesa', bank: 'Bank', cheque: 'Cheque', other: 'Other' };
 
 views.payments = function () {
-  pm.data = null; pm.error = null;
+  pm.data = null; pm.error = null; pm.acc = null;
   setTimeout(pmLoad, 0);
   return '<div id="pmRoot">' + pmBody() + '</div>';
 };
@@ -60,8 +65,25 @@ async function pmLoad() {
   const qs = 'limit=' + f.limit + '&offset=' + f.offset + (f.status ? '&status=' + f.status : '') + (f.source ? '&source=' + f.source : '') +
     (f.from ? '&from=' + f.from : '') + (f.to ? '&to=' + f.to : '') + (f.q ? '&q=' + encodeURIComponent(f.q) : '');
   pm.error = null;
-  try { const d = await Api.get('/schools/' + live.staff.school_id + '/transactions?' + qs); if (token !== pm.loadToken) return; pm.data = d; }
+  try { const d = await Api.get('/schools/' + live.staff.school_id + '/transactions?' + qs); if (token !== pm.loadToken) return; pm.data = d; pm.acc = d.rows.slice(); }
   catch (e) { if (token !== pm.loadToken) return; pm.error = e.message; }
+  pmRenderResults();
+}
+
+async function pmMore() {
+  const d = pm.data;
+  if (!d || !pm.acc || pm.moreBusy || pm.acc.length >= d.total || !pmEl('pmBody')) return;
+  pm.moreBusy = true;
+  const token = pm.loadToken, f = pm.f;
+  try {
+    const qs = 'limit=' + f.limit + '&offset=' + pm.acc.length + (f.status ? '&status=' + f.status : '') + (f.source ? '&source=' + f.source : '') +
+      (f.from ? '&from=' + f.from : '') + (f.to ? '&to=' + f.to : '') + (f.q ? '&q=' + encodeURIComponent(f.q) : '');
+    const more = await Api.get('/schools/' + live.staff.school_id + '/transactions?' + qs);
+    if (token !== pm.loadToken) { pm.moreBusy = false; return; }
+    const seen = {}; pm.acc.forEach(function (r) { seen[r.id] = 1; });
+    more.rows.forEach(function (r) { if (!seen[r.id]) pm.acc.push(r); });
+  } catch (e) { /* stay quiet; scrolling again tries again */ }
+  pm.moreBusy = false;
   pmRenderResults();
 }
 
@@ -101,7 +123,8 @@ function pmRenderResults() {
     '<div class="pm-tile warn"><span>Need review</span><b>' + (c.needs_review || 0) + '</b></div>' +
     '<div class="pm-tile bad"><span>Unmatched</span><b>' + (c.unmatched || 0) + '</b></div></div>';
   if (!d.rows.length) { box.innerHTML = '<div class="pm-empty">No payments match these filters.</div>'; return; }
-  const rows = d.rows.map(function (t) {
+  const list = pm.acc || d.rows;
+  const rows = list.map(function (t) {
     const manual = t.source === 'manual';
     const code = manual ? (t.typed_ref || '') : (t.external_ref || '');
     const chan = manual ? esc(PM_METHOD[t.method] || 'Hand') + '<span class="pm-hand">recorded by hand</span>' : chipFor(t.source);
@@ -114,10 +137,13 @@ function pmRenderResults() {
       '<td data-label="Paid for">' + (t.narration ? esc(t.narration) : '<span class="pm-muted">-</span>') + '</td>' +
       '<td data-label="Student">' + stu + '</td><td data-label="Status"><span class="pm-b ' + esc(t.match_status) + '">' + esc(PM_LABEL[t.match_status] || t.match_status) + '</span></td></tr>';
   }).join('');
-  const to = Math.min(f.offset + f.limit, d.total);
   box.innerHTML = '<table><thead><tr><th>When</th><th>Channel</th><th>Amount</th><th>Code</th><th>Paid for</th><th>Student</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-    '<div class="pm-pager"><button type="button" class="pm-clear" ' + (f.offset <= 0 ? 'disabled' : '') + ' onclick="pmPage(-1)">&larr; Newer</button><span>' + (f.offset + 1) + '&ndash;' + to + ' of ' + d.total + '</span>' +
-    '<button type="button" class="pm-clear" ' + (to >= d.total ? 'disabled' : '') + ' onclick="pmPage(1)">Older &rarr;</button></div>';
+    '<div class="pm-pager" style="justify-content:center">' + (list.length < d.total ? 'Showing ' + list.length + ' of ' + d.total + ' &middot; more load as you scroll' : 'All ' + d.total + ' shown') + '</div>';
+  if (!pmEl('pmTop')) {
+    const b = document.createElement('button'); b.id = 'pmTop'; b.type = 'button'; b.className = 'pm-top'; b.title = 'Back to top'; b.setAttribute('aria-label', 'Back to top'); b.innerHTML = '&uarr;';
+    b.onclick = function () { window.scrollTo({ top: 0, behavior: 'smooth' }); }; document.body.appendChild(b);
+  }
+  if (list.length < d.total) setTimeout(function () { if (document.documentElement.scrollHeight <= window.innerHeight + 160) pmMore(); }, 50);
 }
 
 window.pmLoad = pmLoad;
@@ -129,3 +155,10 @@ window.pmSet = function (k, v) {
 window.pmClear = function () { pm.f.status = pm.f.source = pm.f.from = pm.f.to = pm.f.q = ''; pm.f.offset = 0; const r = pmEl('pmRoot'); if (r) r.innerHTML = pmBody(); pmLoad(); };
 window.pmPage = function (dir) { pm.f.offset = Math.max(0, pm.f.offset + dir * pm.f.limit); pmLoad(); };
 window.pmSearch = function (v) { clearTimeout(pm.timer); pm.timer = setTimeout(function () { pm.f.q = v.trim(); pm.f.offset = 0; pmLoad(); }, 300); };
+
+document.addEventListener('scroll', function (e) {
+  if (e.target !== document) return;
+  const body = pmEl('pmBody'), top = pmEl('pmTop');
+  if (top) top.classList.toggle('show', !!body && window.scrollY > 700);
+  if (body && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 300) pmMore();
+}, true);

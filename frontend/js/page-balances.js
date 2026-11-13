@@ -28,6 +28,11 @@ const bl = { acc: null, moreBusy: false, data: null, error: null, loadToken: 0, 
     '.bl-pill small{color:var(--muted);margin-left:4px}',
     '.bl-sub{font-size:12px;color:var(--muted)}',
     '.bl-empty{text-align:center;padding:40px 20px;background:var(--surface);border:1px dashed var(--line);border-radius:16px;color:var(--muted);font-size:13.5px;line-height:1.6}',
+    '#blBody table{overflow:visible}',
+    '#blBody thead th{position:sticky;top:0;z-index:2;background:var(--surface-raised)}',
+    '.bl-top{position:fixed;right:22px;bottom:22px;width:42px;height:42px;border-radius:50%;border:0;background:var(--navy);color:#fff;font-size:18px;cursor:pointer;box-shadow:0 6px 18px rgba(27,42,74,.22);display:none;z-index:20}',
+    '.bl-top.show{display:block}',
+    '@media(max-width:880px){.bl-top{bottom:78px}}',
     '.bl-pager{display:flex;justify-content:space-between;align-items:center;margin:12px 0;font-size:13px;color:var(--muted)}',
     '.bl-split{display:flex;gap:16px;align-items:flex-start}',
     '.bl-main{flex:1;min-width:0}',
@@ -94,6 +99,10 @@ function blSelect(id, label, value, options, onchange) {
 
 function blRender() {
   if (!blEl('blBody')) return;
+  if (!document.getElementById('blTop')) {
+    const b = document.createElement('button'); b.id = 'blTop'; b.type = 'button'; b.className = 'bl-top'; b.title = 'Back to top'; b.setAttribute('aria-label', 'Back to top'); b.innerHTML = '&uarr;';
+    b.onclick = function () { window.scrollTo({ top: 0, behavior: 'smooth' }); }; document.body.appendChild(b);
+  }
   const d = bl.data;
   if (bl.error) { blEl('blBody').innerHTML = '<div class="bl-empty"><b>Could not load the balances</b><br>' + esc(bl.error) + '<br><br><button type="button" class="btn small" onclick="blLoad()">Try again</button></div>'; return; }
   if (!d) return;
@@ -147,11 +156,13 @@ function blRender() {
       '<td data-label="Balance"><span class="bal ' + cls + '">' + txt + '</span></td></tr>';
   }).join('');
   const to = Math.min(f.offset + f.limit, d.total);
-  const foot = isOpen
-    ? '<div class="bl-pager" style="justify-content:center">' + (list.length < d.total ? 'Loading more as you scroll... (' + list.length + ' of ' + d.total + ')' : 'All ' + d.total + ' shown') + '</div>'
-    : '<div class="bl-pager"><button type="button" class="btn small" ' + (f.offset <= 0 ? 'disabled' : '') + ' onclick="blPage(-1)">&larr; Previous</button><span>' + (f.offset + 1) + '&ndash;' + to + ' of ' + d.total + '</span><button type="button" class="btn small" ' + (to >= d.total ? 'disabled' : '') + ' onclick="blPage(1)">Next &rarr;</button></div>';
+  const foot = '<div class="bl-pager" style="justify-content:center">' + (list.length < d.total ? 'Showing ' + list.length + ' of ' + d.total + ' &middot; more load as you scroll' : 'All ' + d.total + ' shown') + '</div>';
   blEl('blBody').innerHTML = '<table><thead><tr><th>Admission</th><th>Name</th><th>Class</th><th class="bl-x">Brought fwd</th><th class="bl-x">Charged</th><th class="bl-x">Paid</th><th>Balance</th></tr></thead><tbody>' + rows + '</tbody></table>' + foot;
-  if (isOpen && list.length < d.total) setTimeout(function () { const m = document.querySelector('.bl-main'); if (m && m.scrollHeight <= m.clientHeight + 160) blMore(); }, 50);
+  if (list.length < d.total) setTimeout(function () {
+    const m = document.querySelector('.bl-main');
+    const short = isOpen ? (m && m.scrollHeight <= m.clientHeight + 160) : (document.documentElement.scrollHeight <= window.innerHeight + 160);
+    if (short) blMore();
+  }, 50);
 }
 
 // infinite scroll: while a sheet is open the list keeps loading the next students as you reach the bottom
@@ -175,6 +186,12 @@ async function blMore() {
 }
 document.addEventListener('scroll', function (e) {
   const el = e.target;
+  if (el === document) {                                        // the whole page scrolls in the normal view
+    const body = blEl('blBody'), split = document.querySelector('.bl-split.open'), top = document.getElementById('blTop');
+    if (top) top.classList.toggle('show', !!body && !split && window.scrollY > 700);
+    if (body && !split && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 300) blMore();
+    return;
+  }
   if (!el || !el.classList || !el.classList.contains('bl-main')) return;
   if (el.scrollTop + el.clientHeight >= el.scrollHeight - 160) blMore();
 }, true);

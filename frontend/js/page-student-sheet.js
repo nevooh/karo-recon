@@ -166,17 +166,24 @@ function ssRefreshList() { /* the list is not on screen any more: it reloads whe
 // Previous / Next student in the list you came from (Students & balances), across its pages
 async function ssStep(dir) {
   if (typeof bl === 'undefined' || !bl.data) return;
-  let rows = bl.data.rows, i = rows.findIndex(function (r) { return r.id === ss.id; }), j = i + dir;
+  const rows = bl.acc || bl.data.rows;                          // every student loaded so far in the list you came from
+  const i = rows.findIndex(function (r) { return r.id === ss.id; }), j = i + dir;
+  if (i < 0 || j < 0) return;
   try {
-    if (j < 0) { if (bl.f.offset <= 0) return; bl.f.offset = Math.max(0, bl.f.offset - bl.f.limit); bl.data = await Api.get(blBase() + '/balances?' + blQuery()); j = bl.data.rows.length - 1; }
-    else if (j >= rows.length) { if (bl.f.offset + bl.f.limit >= bl.data.total) return; bl.f.offset += bl.f.limit; bl.data = await Api.get(blBase() + '/balances?' + blQuery()); j = 0; }
-    if (bl.data.rows[j]) ssOpen(bl.data.rows[j].id);
+    if (j >= rows.length) {                                      // at the end of what is loaded: fetch the next batch first
+      if (typeof blMore === 'function') await blMore();
+      const now = bl.acc || bl.data.rows;
+      if (j < now.length) ssOpen(now[j].id);
+      return;
+    }
+    ssOpen(rows[j].id);
   } catch (e) { ssToast(e.message, true); }
 }
 function ssStepper() {
   if (ss.from !== 'roster' || typeof bl === 'undefined' || !bl.data) return '';
-  const i = bl.data.rows.findIndex(function (r) { return r.id === ss.id; }); if (i < 0) return '';
-  const pos = bl.f.offset + i + 1, total = bl.data.total;
+  const rows = bl.acc || bl.data.rows;
+  const i = rows.findIndex(function (r) { return r.id === ss.id; }); if (i < 0) return '';
+  const pos = i + 1, total = bl.data.total;
   return '<div class="stp-step"><button type="button" class="stp-sb" onclick="ssStep(-1)"' + (pos <= 1 ? ' disabled' : '') + '>&lsaquo; Previous</button><span>' + pos + ' of ' + total + '</span>' +
     '<button type="button" class="stp-sb" onclick="ssStep(1)"' + (pos >= total ? ' disabled' : '') + '>Next &rsaquo;</button></div>';
 }
