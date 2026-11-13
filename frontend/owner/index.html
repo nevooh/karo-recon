@@ -11,7 +11,7 @@ button{background:#0b6b4f;color:#fff;border:0;padding:10px 16px;border-radius:8p
 button.ghost{background:#e6ebf0;color:#1a2330}
 .err{color:#b00020;margin:8px 0}.ok{background:#e8f6ee;border:1px solid #9bd3b4;padding:12px;border-radius:8px;margin-top:12px}
 table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid #e3e8ee}
-.n{text-align:right}.top{display:flex;justify-content:space-between;align-items:center}
+.tag{background:#e6ebf0;border-radius:99px;padding:2px 8px;font-size:12px}button.sm{padding:6px 10px;font-size:13px;margin:6px 6px 0 0}.n{text-align:right}.top{display:flex;justify-content:space-between;align-items:center}
 code{font-size:16px;background:#fff;padding:2px 6px;border-radius:4px;user-select:all}
 .tbl{overflow-x:auto}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}@media(max-width:640px){.grid{grid-template-columns:1fr}}
 </style></head><body><div class="wrap" id="app"></div>
@@ -37,14 +37,38 @@ function login(msg) {
 }
 async function home(created) {
   let d; try { d = await api('/schools'); } catch (x) { return login(x.message); }
+  let ap = { applications: [], new_count: 0 }; try { ap = await api('/applications'); } catch (x) { /* the page still works without the list */ }
+  const stLabel = { new: 'New', contacted: 'Contacted', accepted: 'Accepted', declined: 'Declined' };
+  const waNum = (p) => String(p || '').replace(/[^0-9]/g, '').replace(/^0/, '254');
+  const appsHtml = `<div class="card"><h2>Applications${ap.new_count ? ' (' + ap.new_count + ' new)' : ''}</h2>` + (ap.applications.map((a) => `<div style="border-top:1px solid #e3e8ee;padding:12px 0">
+      <b>${esc(a.school_name)}</b> <small>${esc(a.town || '')}</small> <span class="tag">${stLabel[a.status] || esc(a.status)}</span><br>
+      ${esc(a.contact_name)}${a.contact_role ? ' (' + esc(a.contact_role) + ')' : ''} &middot; <a href="tel:${esc(a.phone)}">${esc(a.phone)}</a> &middot; <a href="https://wa.me/${waNum(a.phone)}" target="_blank" rel="noopener">WhatsApp</a> &middot; <a href="mailto:${esc(a.email)}">${esc(a.email)}</a><br>
+      <small>${esc(a.students_range || '-')} students &middot; Bank: ${esc(a.bank || '-')} &middot; Fees: ${esc(a.collects_via || '-')} &middot; Start: ${esc(a.start_when || '-')} &middot; ${esc(String(a.created_at).slice(0, 10))}</small>
+      ${a.message ? '<div style="margin-top:6px">' + esc(a.message) + '</div>' : ''}
+      <div><button class="sm ghost" data-app="${a.id}" data-act="contacted">Contacted</button><button class="sm" data-app="${a.id}" data-act="accepted">Accept</button><button class="sm ghost" data-app="${a.id}" data-act="declined">Decline</button></div>
+    </div>`).join('') || '<div>No applications yet.</div>') + '</div>';
   app.innerHTML = `<div class="top"><h1>Schools</h1><button class="ghost" id="out">Sign out</button></div>
   <div class="grid"><div class="card"><b>${d.total_schools}</b><br>schools</div><div class="card"><b>${d.total_students}</b><br>students in total</div></div>
+  ${appsHtml}
   <div class="card"><h2>Add a school</h2>
     <label>School name<input id="n"></label><label>Main admin's full name<input id="an"></label><label>Main admin's email<input id="ae" type="email"></label>
     <button id="add">Add school</button><div class="err" id="m"></div><div id="made">${created || ''}</div></div>
   <div class="card tbl"><table><tr><th>School</th><th>Main admin</th><th class="n">Students</th></tr>
   ${d.schools.map((s) => `<tr><td>${esc(s.name)}</td><td>${esc(s.admin_name || '-')}<br><small>${esc(s.admin_email || '')}${s.admin_status && s.admin_status !== 'active' ? ' (' + esc(s.admin_status) + ')' : ''}</small></td><td class="n">${s.students}</td></tr>`).join('') || '<tr><td colspan="3">No schools yet.</td></tr>'}</table></div>`;
   out.onclick = signOut;
+  document.querySelectorAll('[data-app]').forEach((b) => {
+    b.onclick = async () => {
+      const id = b.dataset.app, act = b.dataset.act;
+      try {
+        await api('/applications/' + id, { status: act });
+        if (act === 'accepted') {                                   // fill the Add a school form with what they told us
+          const a = ap.applications.find((x) => String(x.id) === id);
+          if (a) { n.value = a.school_name; an.value = a.contact_name; ae.value = a.email; }
+          n.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else home();
+      } catch (x) { alert(x.message); }
+    };
+  });
   add.onclick = async () => {
     add.disabled = true;
     try {

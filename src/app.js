@@ -32,6 +32,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const parentRoutes = require('./routes/parentRoutes');
 const ownerRoutes = require('./routes/ownerRoutes');
+const applyRoutes = require('./routes/applyRoutes');
 const { createSchoolWithCredentials } = require('./services/schoolCredentials');
 
 const app = express();
@@ -62,6 +63,8 @@ if (PARENT_PORTAL_ON) app.use('/api/parent', parentRoutes);
 else app.use('/api/parent', (req, res) => res.status(503).json({ error: 'The parent portal is not available yet.' }));
 // Platform owner console (Zuvy): add schools, see the list.
 app.use('/api/owner', ownerRoutes);
+// Public: a school asks to join (saved for the owner to read; creates nothing by itself).
+app.use('/api/apply', applyRoutes);
 
 // ---------------------------------------------------------------------
 // DEV-ONLY ROUTES. These are unauthenticated and one of them wipes the

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#F7F4EC"><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<title>Apply for Karo Recon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F3EDDF;--surface:#FBF8EF;--line:#E0D8C2;--ink:#1B2A4A;--muted:#5B5F73;--teal:#2F6F62;--rust:#B5482A;--navy:#1B2A4A}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 'IBM Plex Sans',system-ui,sans-serif}
+.wrap{max-width:640px;margin:0 auto;padding:28px 18px 60px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}
+.brand{font:700 22px 'Fraunces',serif}
+.top a{color:var(--muted);text-decoration:none;font-size:14px}
+h1{font:700 30px/1.2 'Fraunces',serif;margin:0 0 10px}
+.lead{color:var(--muted);margin:0 0 24px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 24px}
+label{display:block;font-size:13px;font-weight:600;margin:0 0 5px}
+.hint{font-weight:400;color:var(--muted)}
+input,select,textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);margin-bottom:16px}
+input:focus,select:focus,textarea:focus{outline:2px solid rgba(47,111,98,.35);border-color:var(--teal)}
+textarea{min-height:90px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+@media(max-width:560px){.row{grid-template-columns:1fr}}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+button{width:100%;padding:13px;border:0;border-radius:8px;background:var(--teal);color:#FFFDF8;font:600 15px 'IBM Plex Sans',sans-serif;cursor:pointer}
+button[disabled]{opacity:.6;cursor:default}
+.err{color:var(--rust);margin:0 0 12px;min-height:1px;font-size:14px}
+.note{color:var(--muted);font-size:13px;margin:14px 0 0}
+.done{text-align:center;padding:18px 6px}
+.done h2{font:700 24px 'Fraunces',serif;margin:0 0 10px}
+.done p{color:var(--muted);margin:0 0 18px}
+.done a{color:var(--teal);font-weight:600}
+</style></head><body>
+<div class="wrap">
+  <div class="top"><div class="brand">Karo Recon</div><a href="/">&larr; Back</a></div>
+  <h1>Apply for your school</h1>
+  <p class="lead">Tell us about your school and your bank. We will contact you, check that we can connect your bank, and set your school up. Nothing starts until we have agreed it with you.</p>
+  <div class="card" id="card">
+    <form id="f" autocomplete="on" novalidate>
+      <div class="row">
+        <div><label for="school_name">School name</label><input id="school_name" name="school_name" maxlength="120" required></div>
+        <div><label for="town">Town or county</label><input id="town" name="town" maxlength="80"></div>
+      </div>
+      <div class="row">
+        <div><label for="contact_name">Your name</label><input id="contact_name" name="contact_name" maxlength="100" autocomplete="name" required></div>
+        <div><label for="contact_role">Your role</label>
+          <select id="contact_role" name="contact_role"><option>Bursar</option><option>Principal or head teacher</option><option>Director or owner</option><option>Accountant</option><option>Other</option></select></div>
+      </div>
+      <div class="row">
+        <div><label for="phone">Phone <span class="hint">(WhatsApp if possible)</span></label><input id="phone" name="phone" type="tel" maxlength="25" autocomplete="tel" placeholder="07xx xxx xxx" required></div>
+        <div><label for="email">Email</label><input id="email" name="email" type="email" maxlength="120" autocomplete="email" required></div>
+      </div>
+      <div class="row">
+        <div><label for="students_range">Number of students</label>
+          <select id="students_range" name="students_range"><option>Under 200</option><option>200 to 500</option><option>500 to 1000</option><option>Over 1000</option></select></div>
+        <div><label for="bank">Your school's bank</label>
+          <select id="bank" name="bank"><option>KCB</option><option>Equity Bank</option><option>Co-operative Bank</option><option>NCBA</option><option>Stanbic</option><option>Absa</option><option>I&amp;M Bank</option><option>Family Bank</option><option>Diamond Trust Bank</option><option>Standard Chartered</option><option>Other bank</option><option>Not sure</option></select></div>
+      </div>
+      <div class="row">
+        <div><label for="collects_via">How do parents pay fees?</label>
+          <select id="collects_via" name="collects_via"><option>Bank paybill</option><option>Own M-Pesa paybill or till</option><option>Both</option><option>Not sure</option></select></div>
+        <div><label for="start_when">When would you like to start?</label>
+          <select id="start_when" name="start_when"><option>This term</option><option>Next term</option><option>Just exploring</option></select></div>
+      </div>
+      <label for="message">Anything we should know? <span class="hint">(optional)</span></label>
+      <textarea id="message" name="message" maxlength="500" placeholder="For example: your bank is not in the list, or you collect fees in more than one account."></textarea>
+      <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+      <div class="err" id="err" role="alert"></div>
+      <button type="submit" id="go">Send application</button>
+      <p class="note">We use these details only to contact you about Karo Recon.</p>
+    </form>
+  </div>
+</div>
+<script>
+(function () {
+  var f = document.getElementById('f'), err = document.getElementById('err'), go = document.getElementById('go');
+  f.addEventListener('submit', function (e) {
+    e.preventDefault(); err.textContent = '';
+    var body = {}; new FormData(f).forEach(function (v, k) { body[k] = v; });
+    if (!body.school_name.trim() || !body.contact_name.trim()) { err.textContent = 'Please fill in the school name and your name.'; return; }
+    if (!/^\+?[0-9 ()-]{9,20}$/.test(body.phone.trim())) { err.textContent = 'Please check the phone number.'; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())) { err.textContent = 'Please check the email address.'; return; }
+    go.disabled = true; go.textContent = 'Sending...';
+    fetch('/api/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (x) {
+        if (!x.ok) throw new Error(x.j.error || 'Something went wrong. Please try again.');
+        document.getElementById('card').innerHTML = '<div class="done"><h2>Thank you</h2><p>We have your application. We will contact you on the phone number or email you gave, and first check whether we can connect your bank. Nothing starts until we have agreed it with you.</p><a href="/">Back to Karo Recon</a></div>';
+        window.scrollTo(0, 0);
+      })
+      .catch(function (ex) { err.textContent = ex.message; go.disabled = false; go.textContent = 'Send application'; });
+  });
+})();
+</script>
+</body></html>

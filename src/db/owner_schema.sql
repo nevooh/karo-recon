@@ -8,3 +8,22 @@ CREATE TABLE IF NOT EXISTS platform_owners (
   last_login_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Schools that ask to join through the public apply page. Nothing here creates a school: you read it, contact them, and add the school yourself.
+CREATE TABLE IF NOT EXISTS school_applications (
+  id SERIAL PRIMARY KEY,
+  school_name TEXT NOT NULL,
+  town TEXT,
+  contact_name TEXT NOT NULL,
+  contact_role TEXT,
+  phone TEXT NOT NULL,
+  email TEXT NOT NULL,
+  students_range TEXT,
+  bank TEXT,
+  collects_via TEXT,
+  start_when TEXT,
+  message TEXT,
+  status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new','contacted','accepted','declined')),
+  note TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

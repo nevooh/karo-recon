@@ -57,4 +57,17 @@ async function addSchool({ name, adminName, adminEmail }) {
   return { school: out.school, admin: out.admin, password: out.password };
 }
 
-module.exports = { createOwner, login, listSchools, addSchool };
+async function listApplications(db = pool) {
+  const r = await db.query(`SELECT * FROM school_applications ORDER BY (status = 'new') DESC, id DESC LIMIT 300`);
+  return { applications: r.rows, new_count: r.rows.filter((x) => x.status === 'new').length };
+}
+
+async function updateApplication(id, { status, note }, db = pool) {
+  if (!Number.isInteger(id) || id < 1) throw refuse('Application not found.', 404);
+  if (!['new', 'contacted', 'accepted', 'declined'].includes(status)) throw refuse('Unknown status.');
+  const r = await db.query('UPDATE school_applications SET status = $2, note = COALESCE($3, note) WHERE id = $1', [id, status, note == null ? null : String(note).slice(0, 500)]);
+  if (!r.rowCount) throw refuse('Application not found.', 404);
+  return { ok: true };
+}
+
+module.exports = { createOwner, login, listSchools, addSchool, listApplications, updateApplication };

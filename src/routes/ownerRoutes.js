@@ -22,4 +22,8 @@ router.post('/schools', requireOwner, async (req, res, next) => {
   try { res.status(201).json(await owner.addSchool({ name: req.body.name, adminName: req.body.adminName, adminEmail: req.body.adminEmail })); }
   catch (e) { next(e); }
 });
+router.get('/applications', requireOwner, async (req, res, next) => { try { res.json(await owner.listApplications()); } catch (e) { next(e); } });
+router.post('/applications/:id', requireOwner, async (req, res, next) => {
+  try { res.json(await owner.updateApplication(Number(req.params.id), { status: req.body.status, note: req.body.note })); } catch (e) { next(e); }
+});
 module.exports = router;
