@@ -669,6 +669,7 @@ const views = {
 
 function showView(name){
   document.getElementById('main').innerHTML = views[name]();
+  try { sessionStorage.setItem('karo_view', name); } catch (e) { /* private window: not remembered */ }
   document.querySelectorAll('.nav, .bnav-item').forEach(function(el){ el.classList.toggle('active', el.dataset.view === name); });
   closeDrawer();
   window.scrollTo(0,0);

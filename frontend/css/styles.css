@@ -391,3 +391,11 @@
   .app.folded .sidebar .fold-btn{position:static;display:block;margin:0 auto 10px;opacity:.6;}
   .app.folded .sidebar .brand{padding-right:0;}
   .app.folded .sidebar .nav{margin:1px 8px;padding:11px 0;}
+
+  /* ZUVY SPACING: wider menu, bigger text, more air between items (desktop only) */
+  @media(min-width:881px){ .app{grid-template-columns:240px 1fr;} }
+  .sidebar{padding-top:28px;}
+  .sidebar .brand{padding-bottom:22px;margin-bottom:8px;}
+  .sidebar .navsec{padding:22px 24px 8px;font-size:10.5px;letter-spacing:.1em;}
+  .sidebar .nav{font-size:14px;padding:10px 14px;margin:2px 14px;gap:12px;}
+  .sidebar .sidebar-foot{padding:16px 24px 0;}

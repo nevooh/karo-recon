@@ -4,7 +4,7 @@ const Api = {
   token() { return sessionStorage.getItem('karo_token'); },
   staff() { try { return JSON.parse(sessionStorage.getItem('karo_staff')); } catch (e) { return null; } },
   save(token, staff) { sessionStorage.setItem('karo_token', token); sessionStorage.setItem('karo_staff', JSON.stringify(staff)); },
-  clear() { sessionStorage.removeItem('karo_token'); sessionStorage.removeItem('karo_staff'); Api.pin = null; },
+  clear() { sessionStorage.removeItem('karo_token'); sessionStorage.removeItem('karo_staff'); sessionStorage.removeItem('karo_view'); Api.pin = null; },
 
   /* PIN unlock: sensitive actions (banks, M-Pesa, channels, staff access, renaming the school) ask an Admin for their PIN.
      The server answers 403 { code: 'pin_required' | 'pin_not_set' }; we ask once, keep the unlock in memory for 10 minutes

@@ -18,11 +18,13 @@ async function loadLiveData() {
   live.summary = out[0]; live.queue = out[1]; live.unmatched = out[2];
 }
 
-function enterApp() {
+function enterApp(resume) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('landingScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'grid';
-  showView('dashboard');
+  let first = 'dashboard';
+  if (resume) { try { const s = sessionStorage.getItem('karo_view'); if (s && views[s] && s !== 'studentdetail') first = s; } catch (e) { /* ignore */ } }
+  showView(first);
 }
 
 /* ---------------- login / logout ---------------- */
@@ -77,5 +79,5 @@ window.skipLogin = window.goToLogin;
 (async function restoreSession() {
   if (!Api.token() || !Api.staff()) return;
   live.staff = Api.staff();
-  try { await loadLiveData(); enterApp(); } catch (e) { Api.clear(); live.staff = null; }
+  try { await loadLiveData(); enterApp(true); } catch (e) { Api.clear(); live.staff = null; }
 })();
