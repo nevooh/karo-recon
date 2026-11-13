@@ -56,7 +56,10 @@ app.use('/api', reportRoutes);
 app.use('/api', settingsRoutes);
 app.use('/api/auth', authRoutes);
 // Parent portal: parents sign in with their phone number (not a staff account), see their children's fees and pay by M-Pesa.
-app.use('/api/parent', parentRoutes);
+// Switch: PARENT_PORTAL=on turns the parent portal on. Anything else (or nothing) keeps it off, so no SMS codes can be sent.
+const PARENT_PORTAL_ON = String(process.env.PARENT_PORTAL || '').trim().toLowerCase() === 'on';
+if (PARENT_PORTAL_ON) app.use('/api/parent', parentRoutes);
+else app.use('/api/parent', (req, res) => res.status(503).json({ error: 'The parent portal is not available yet.' }));
 // Platform owner console (Zuvy): add schools, see the list.
 app.use('/api/owner', ownerRoutes);
 
@@ -115,6 +118,9 @@ app.use((req, res, next) => {
   next();
 });
 app.get('/pay', (req, res) => res.redirect('/portal/'));
+
+// While the parent portal is off, its page is not served either: /pay and /portal go to the front page.
+app.use('/portal', (req, res, next) => (PARENT_PORTAL_ON ? next() : res.redirect('/')));
 
 // The admin screens, served from the same server (so no CORS setup is needed).
 app.use(express.static(path.join(__dirname, '..', 'frontend')));

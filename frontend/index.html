@@ -18,28 +18,33 @@
   <div class="landing-nav">
     <div class="login-brand">Karo Recon</div>
     <div class="landing-nav-actions">
-      <a class="landing-link" href="/pay">Parents: pay fees</a>
-      <button class="btn primary small" onclick="goToLogin()">Staff sign in &rarr;</button>
+      <a class="landing-link" data-contact="Apply for Karo Recon" href="#">Apply for access</a>
+      <button class="btn primary small" onclick="goToLogin()">Sign in &rarr;</button>
     </div>
   </div>
 
   <div class="landing-hero">
-    <div class="landing-kicker">School fee collection &amp; reconciliation</div>
-    <h1 class="landing-h1">Know who paid, for which child, the moment the money lands.</h1>
-    <p class="landing-p">Karo Recon reads every fee payment that reaches your M-Pesa Paybill and your school's bank accounts and matches it to the right student on its own. Siblings, typos and shared phone numbers are handled safely, and anything uncertain waits for a person instead of being guessed.</p>
+    <div class="landing-kicker">Direct-to-bank fee reconciliation for Kenyan schools</div>
+    <h1 class="landing-h1">Every fee payment, matched to the right student, straight from your bank.</h1>
+    <p class="landing-p">When a parent pays into your school&rsquo;s account, your bank tells Karo Recon. We read the admission number, find the student and update their balance. No statements to download. No Excel. No guessing.</p>
     <div class="landing-cta">
       <button class="btn primary" style="width:auto;flex:none;padding:12px 26px;font-size:14px;" onclick="goToLogin()">Sign in to your school &rarr;</button>
-      <a class="btn-ghost" href="/pay">I am a parent</a>
+      <a class="btn-ghost" data-contact="Apply for Karo Recon" href="#">Apply for your school</a>
     </div>
   </div>
 
   <div class="landing-section">
     <h2 class="landing-h2">How a payment is handled</h2>
     <div class="steps">
-      <div class="step"><div class="step-n">1</div><h3>The payment arrives</h3><p>Safaricom or the bank tells the school's own private address the moment a payment is made. Nobody uploads a statement or types anything in.</p></div>
-      <div class="step"><div class="step-n">2</div><h3>It is matched to a student</h3><p>The account number, the payer's name and phone are checked against your students. Only a confident match is applied. A payment that could be two children, or none, is held.</p></div>
-      <div class="step"><div class="step-n">3</div><h3>The balance and the record update</h3><p>The student's term balance drops, the payment appears in their history, and anything held goes to the Review queue for a person to confirm.</p></div>
+      <div class="step"><div class="step-n">1</div><h3>Parents pay as they always have</h3><p>Through your bank&rsquo;s paybill or M-Pesa. Nothing changes for parents, and nobody has to learn a new way to pay.</p></div>
+      <div class="step"><div class="step-n">2</div><h3>Your bank tells us directly</h3><p>The notification comes from your bank to your school&rsquo;s own private address. There is no middleman and no statement to upload.</p></div>
+      <div class="step"><div class="step-n">3</div><h3>The balance updates</h3><p>The payment is matched to the student and their term balance drops. If a payment could be two children, or none, it waits in a short review list for a person to decide.</p></div>
     </div>
+  </div>
+
+  <div class="landing-section">
+    <h2 class="landing-h2">Works with your bank</h2>
+    <p class="landing-p" style="max-width:640px;margin:0 auto;text-align:center;">We connect directly to your school&rsquo;s bank and to M-Pesa. Using a bank we haven&rsquo;t connected yet? Tell us when you apply. We work with your bank to set it up, and we confirm with you whether it can be done before anything starts.</p>
   </div>
 
   <div class="landing-section">
@@ -47,18 +52,31 @@
     <div class="landing-features">
       <div class="lf-card"><div class="lf-ic">&#9670;</div><h3>Siblings handled correctly</h3><p>When one phone pays for two children, the system asks. It never silently decides which child the money belongs to.</p></div>
       <div class="lf-card"><div class="lf-ic">&#9888;</div><h3>A review queue, not guesses</h3><p>Uncertain and unmatched payments wait in one place with the reason they were held, until a real person decides.</p></div>
-      <div class="lf-card"><div class="lf-ic">&#9776;</div><h3>Fees, terms and balances</h3><p>Fee structure per class, terms, optional fees and balances brought forward, so each student's balance is worked out from your own fee set-up.</p></div>
+      <div class="lf-card"><div class="lf-ic">&#9776;</div><h3>Fees, terms and balances</h3><p>Fee structure per class, terms, optional fees and balances brought forward, so each student&rsquo;s balance is worked out from your own fee set-up.</p></div>
       <div class="lf-card"><div class="lf-ic">&#9638;</div><h3>Reports and an activity log</h3><p>See what was collected, what is outstanding, and who changed what and when. Every important action is recorded.</p></div>
-      <div class="lf-card"><div class="lf-ic">&#128241;</div><h3>A portal for parents</h3><p>Parents sign in with their phone number, see each child's fees, payments and receipts, and can pay by an M-Pesa prompt on their phone or from the M-Pesa menu.</p></div>
-      <div class="lf-card"><div class="lf-ic">&#128274;</div><h3>Private to each school</h3><p>Each school's payment keys are encrypted separately and never shown again after they are saved. Staff have their own sign-ins and roles, and sensitive actions ask for a PIN.</p></div>
+      <div class="lf-card"><div class="lf-ic">&#128274;</div><h3>Private to each school</h3><p>Each school&rsquo;s payment keys are encrypted separately and never shown again after they are saved. Staff have their own sign-ins and roles, and sensitive actions ask for a PIN.</p></div>
+      <div class="lf-card"><div class="lf-ic">&#128241;</div><h3>Parent portal <span class="lf-soon">Coming soon</span></h3><p>Parents will be able to check their children&rsquo;s balances, payments and receipts from their phones.</p></div>
     </div>
   </div>
 
-  <div class="landing-foot">Built for Kenyan schools &middot; Karo Recon by Zuvy Technologies</div>
+  <div class="landing-band">
+    <h2>Get your school on Karo Recon</h2>
+    <p>Tell us about your school and your bank. We will contact you, check that we can connect your bank, and set your school up.</p>
+    <a class="btn-light" data-contact="Apply for Karo Recon" href="#">Apply for your school</a>
+  </div>
+
+  <div class="landing-foot">Built for Kenyan schools &middot; Karo Recon by Zuvy Technologies &middot; <a data-contact="" data-show="1" href="#" style="color:inherit"></a></div>
 </div>
 
 <!-- ============ LOGIN SCREEN ============ -->
 <div class="login-wrap" id="loginScreen" style="display:none;">
+  <div class="login-split">
+    <div class="login-panel">
+      <div class="login-panel-brand">Karo Recon</div>
+      <h2>Fee payments matched to the right student, straight from your bank.</h2>
+      <p>Sign in to see who paid, what is outstanding and what needs a person to check.</p>
+      <div class="login-panel-foot">Karo Recon by Zuvy Technologies</div>
+    </div>
   <div class="login-box">
     <p class="back-link" onclick="backToLanding()">&larr; Back</p>
     <div class="login-brand">Karo Recon</div>
@@ -71,7 +89,11 @@
     <button class="btn primary wide" style="margin-top:18px;" onclick="attemptLogin()">Sign in</button>
     <p class="login-foot">No account yet? Ask your school admin to add you under Staff. You will get an email with a link.</p>
   </div>
+  </div>
 </div>
+
+<script>/* the contact address lives here, in one place */
+(function(){var c='zuvytechnologies@gmail.com';document.querySelectorAll('[data-contact]').forEach(function(a){var s=a.getAttribute('data-contact');a.href='mailto:'+c+(s?'?subject='+encodeURIComponent(s):'');if(a.hasAttribute('data-show'))a.textContent=c;});})();</script>
 
 <!-- ============ MAIN APP (hidden until logged in) ============ -->
 <div class="app" id="mainApp" style="display:none;">
