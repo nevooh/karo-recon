@@ -31,7 +31,7 @@ const rp = { d: null, error: null, token: 0, termId: '' };
     '.rp-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;margin:0 0 16px}',
     '.rp-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px 20px;min-width:0;margin:0 0 16px}',
     '.rp-grid .rp-card{margin:0}',
-    '.rp-card h2{font-family:"Space Grotesk",sans-serif;font-size:16px;margin:0 0 4px}',
+    '.rp-card h2{font-family:"Fraunces",serif;font-size:16px;margin:0 0 4px}',
     '.rp-card .rp-sub{font-size:12.5px;color:var(--muted);margin:0 0 14px}',
     '.rp-term{display:grid;grid-template-columns:110px minmax(0,1fr) 52px;gap:12px;align-items:center;padding:8px 0;cursor:pointer;border-radius:10px}',
     '.rp-term:hover{background:var(--surface-raised)}',

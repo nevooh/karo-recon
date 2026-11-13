@@ -29,8 +29,8 @@ const cd = { classId: null, tab: 'students', stream: '', status: 'all', q: '', t
     '.cd-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}',
     '.cd-bar .cls-in{min-width:0;width:auto}.cd-bar select.cls-in{min-width:140px}.cd-sp{flex:1}',
     '.cd-pill{font:inherit;font-size:12.5px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:20px;padding:5px 12px;cursor:pointer}',
-    '.cd-pill.on{border-color:var(--matched);color:var(--ink);background:rgba(89,179,125,.1)}.cd-pill b{font-weight:500;margin-left:4px;font-family:"IBM Plex Mono",monospace;font-size:11.5px}',
-    '.cd-warn{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-radius:10px;background:rgba(217,164,65,.12);border:1px solid rgba(217,164,65,.4);font-size:13px;margin-bottom:12px}',
+    '.cd-pill.on{border-color:var(--matched);color:var(--ink);background:rgba(47,111,98,.1)}.cd-pill b{font-weight:500;margin-left:4px;font-family:"IBM Plex Mono",monospace;font-size:11.5px}',
+    '.cd-warn{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-radius:10px;background:rgba(184,134,47,.12);border:1px solid rgba(184,134,47,.4);font-size:13px;margin-bottom:12px}',
     '.cd-sel{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:9px 14px;border-radius:10px;background:var(--surface-raised);border:1px solid var(--matched);font-size:13px;margin-bottom:10px}',
     '.cd-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}',
     '.cd-tbl{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px}',
@@ -39,7 +39,7 @@ const cd = { classId: null, tab: 'students', stream: '', status: 'all', q: '', t
     '.cd-tbl .n{text-align:right;font-family:"IBM Plex Mono",monospace;font-size:12.5px}.cd-tbl th.n{text-align:right}',
     '.cd-tbl .adm{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted)}',
     '.cd-tag{font-size:11.5px;border-radius:20px;padding:2px 9px;border:1px solid var(--line);color:var(--muted)}',
-    '.cd-tag.owing{color:var(--alert);border-color:rgba(226,87,76,.5)}.cd-tag.ok{color:var(--matched);border-color:rgba(89,179,125,.5)}.cd-tag.cr{color:var(--bank);border-color:rgba(90,140,220,.5)}',
+    '.cd-tag.owing{color:var(--alert);border-color:rgba(181,72,42,.5)}.cd-tag.ok{color:var(--matched);border-color:rgba(47,111,98,.5)}.cd-tag.cr{color:var(--bank);border-color:rgba(59,91,165,.5)}',
     '.cd-nost{font-size:12px;color:var(--cash)}',
     '.cd-link{font:inherit;font-size:12.5px;color:var(--matched);background:transparent;border:0;cursor:pointer;padding:0;text-decoration:underline}',
     '.cd-empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:13.5px}',
@@ -158,7 +158,7 @@ function cdStudentsHtml(c) {
     '<span class="cd-sp"></span><button type="button" class="cls-btn sm" onclick="cdCsv()">Download CSV</button><button type="button" class="cls-btn sm" onclick="cdPrint()">Print list</button></div>' +
     '<div class="cd-bar">' + pill('all', 'All') + pill('owing', 'Owing') + pill('paid', 'Paid up') + pill('not_billed', 'Not billed') + '</div>';
   const canMove = admin && streams.length > 0;
-  const sel = cd.picked.size && canMove ? '<div class="cd-sel"><b>' + cd.picked.size + ' selected</b><button type="button" class="cls-btn go sm" style="color:#0E1613" onclick="cdMove()">Move to stream&hellip;</button><button type="button" class="cd-link" onclick="cdClear()">Clear</button></div>' : '';
+  const sel = cd.picked.size && canMove ? '<div class="cd-sel"><b>' + cd.picked.size + ' selected</b><button type="button" class="cls-btn go sm" style="color:#FFFDF8" onclick="cdMove()">Move to stream&hellip;</button><button type="button" class="cd-link" onclick="cdClear()">Clear</button></div>' : '';
   const allOn = rows.length && rows.every(function (r) { return cd.picked.has(r.id); });
   const head = '<tr>' + (canMove ? '<th style="width:30px"><input type="checkbox" aria-label="Select all shown" ' + (allOn ? 'checked ' : '') + 'onchange="cdPickAll(this.checked)"></th>' : '') +
     '<th>Adm no.</th><th>Name</th>' + (streams.length ? '<th>Stream</th>' : '') + '<th class="n">Billed</th><th class="n">Paid</th><th class="n">Balance</th><th>Status</th>' + (canMove ? '<th></th>' : '') + '</tr>';

@@ -1,196 +1,214 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Parent Portal</title>
-<link rel='apple-touch-icon' href='/apple-touch-icon.png?v=2'>
-<link rel='icon' href='/favicon.svg?v=2' type='image/svg+xml'>
-<meta name='theme-color' content='#0E1613'>
+<meta charset="UTF-8">
+<title>Karo Recon — Admin</title>
+<link rel='apple-touch-icon' href='/apple-touch-icon.png'>
+<link rel='icon' href='/favicon.svg' type='image/svg+xml'>
+<meta name='theme-color' content='#F7F4EC'>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#0E1613;--surface:#16211D;--raised:#1D2B25;--line:#2A3831;--ink:#EDEAE0;--muted:#8FA398;--ok:#59B37D;--mpesa:#3DAE2B;--warn:#D9A441;--alert:#E2574C;--r:14px}
-*{box-sizing:border-box}
-html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.45}
-h1,h2,h3{font-family:'Space Grotesk','IBM Plex Sans',sans-serif;margin:0;font-weight:600}
-button{font:inherit;color:inherit;cursor:pointer}
-:focus-visible{outline:2px solid var(--ok);outline-offset:2px}
-.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
-.muted{color:var(--muted)}
-
-/* shell: phone first, sidebar on laptop */
-.app{min-height:100vh;display:flex;flex-direction:column}
-.side{display:none}
-main{flex:1;width:100%;max-width:760px;margin:0 auto;padding:14px 16px calc(96px + env(safe-area-inset-bottom,0px))}
-.top{display:flex;align-items:center;gap:10px;padding:2px 0 14px}
-.logo{width:38px;height:38px;border-radius:50%;background:var(--raised);border:1px solid var(--line);display:grid;place-items:center;font-family:'Space Grotesk';font-weight:700;color:var(--ok);flex:none}
-.top b{display:block;font-family:'Space Grotesk';font-size:15px;line-height:1.15}
-.top span{font-size:12px;color:var(--muted)}
-.who{margin-left:auto;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--ok)}
-
-.kids{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}
-.kid{flex:none;display:flex;align-items:center;gap:9px;padding:8px 14px 8px 8px;border-radius:40px;border:1px solid var(--line);background:var(--surface);color:var(--muted)}
-.kid i{font-style:normal;width:28px;height:28px;border-radius:50%;background:var(--raised);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--ink)}
-.kid small{display:block;font-size:11px;line-height:1.1}
-.kid.on{border-color:var(--ok);color:var(--ink);background:var(--raised)}
-
-/* the one memorable thing: the balance */
-.hero{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px 20px 18px;position:relative;overflow:hidden}
-.hero:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--alert)}
-.hero.clear:before{background:var(--ok)}
-.hero .lbl{font-size:13px;color:var(--muted)}
-.bal{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:40px;letter-spacing:-1px;margin:2px 0 2px;line-height:1.1}
-.bal small{font-size:16px;color:var(--muted);margin-right:6px;letter-spacing:0}
-.hero.clear .bal{color:var(--ok)}
-.bar{height:8px;border-radius:8px;background:var(--raised);margin:14px 0 8px;overflow:hidden}
-.bar div{height:100%;background:var(--ok);border-radius:8px;transition:width .5s}
-.barnote{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
-.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;width:100%;border-radius:12px;border:1px solid var(--line);background:transparent;font-weight:600;font-size:15px}
-.btn.go{background:var(--mpesa);border-color:var(--mpesa);color:#08130A;margin-top:16px}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn:active{transform:scale(.99)}
-
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px}
-.tile .n{font-family:'IBM Plex Mono';font-weight:600;font-size:14.5px;margin-top:2px}
-.tile .l{font-size:11.5px;color:var(--muted)}
-
-.sec{display:flex;justify-content:space-between;align-items:baseline;margin:24px 2px 10px}
-.sec h2{font-size:16px}
-.link{background:none;border:0;color:var(--ok);font-size:13px;padding:6px 0}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
-.row{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--line)}
-.row:last-child{border-bottom:0}
-.ic{width:38px;height:38px;border-radius:10px;background:rgba(61,174,43,.16);color:var(--mpesa);display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
-.ic.bank{background:rgba(90,127,191,.18);color:#5A7FBF}
-.ic.cash{background:rgba(217,164,65,.18);color:var(--warn)}
-.row .mid{flex:1;min-width:0}
-.row .mid b{display:block;font-weight:500}
-.row .mid span{font-size:12.5px;color:var(--muted)}
-.row .amt{font-family:'IBM Plex Mono';font-weight:600;font-size:14px;white-space:nowrap;text-align:right}
-.row .amt small{display:block;font-family:'IBM Plex Sans';font-weight:400;font-size:11.5px;color:var(--muted)}
-.pos{color:var(--ok)}
-.tag{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
-.tag.owing{background:rgba(226,87,76,.14);color:var(--alert)}
-.tag.cleared{background:rgba(89,179,125,.16);color:var(--ok)}
-.tag.over{background:rgba(217,164,65,.18);color:var(--warn)}
-.sub{font-size:12px;color:var(--muted);padding:10px 14px 0}
-.sum{display:flex;justify-content:space-between;padding:13px 14px;border-top:1px solid var(--line);font-weight:600;background:var(--raised)}
-.pick{display:flex;gap:8px;margin:0 0 12px}
-.pill{padding:7px 14px;border-radius:20px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:13px}
-.pill.on{border-color:var(--ok);color:var(--ink);background:var(--raised)}
-.note{margin-top:12px;padding:12px 14px;border-radius:var(--r);background:var(--raised);border:1px solid var(--line);font-size:13px;color:var(--muted)}
-
-/* nav */
-.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--surface);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:5}
-.tabs button{flex:1;background:none;border:0;padding:8px 0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;min-height:52px}
-.tabs button svg,.side button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.tabs button.on{color:var(--ink)}
-.tabs button.on svg{stroke:var(--ok)}
-
-/* pay sheet */
-.shade{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;z-index:20}
-.shade.open{display:flex}
-.sheet{background:var(--surface);border:1px solid var(--line);border-radius:22px 22px 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding:18px 18px calc(20px + env(safe-area-inset-bottom,0px));animation:up .22s ease-out}
-@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
-.sheet .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
-.x{background:var(--raised);border:1px solid var(--line);border-radius:50%;width:34px;height:34px}
-label{display:block;font-size:13px;color:var(--muted);margin:16px 0 6px}
-.in{width:100%;min-height:50px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:600 18px 'IBM Plex Mono',monospace}
-.in:focus{outline:2px solid var(--ok);border-color:var(--ok)}
-.quick{display:flex;gap:8px;margin-top:8px}
-.quick button{flex:1;min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--raised);font-size:13px}
-.err{color:var(--alert);font-size:12.5px;margin-top:6px;min-height:18px}
-.alt{margin-top:18px;border:1px dashed var(--line);border-radius:12px;padding:14px}
-.alt h3{font-size:14px;margin-bottom:8px}
-.kv{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;font-size:14px}
-.kv b{font-family:'IBM Plex Mono';font-weight:600}
-.kv button{border:1px solid var(--line);background:var(--raised);border-radius:8px;padding:5px 10px;font-size:12px;margin-left:8px}
-.state{text-align:center;padding:26px 6px 8px}
-.state h2{font-size:20px;margin:16px 0 6px}
-.state p{margin:0;color:var(--muted);font-size:14px}
-.spin{width:54px;height:54px;border-radius:50%;border:4px solid var(--raised);border-top-color:var(--mpesa);margin:0 auto;animation:sp 1s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
-.tick{width:60px;height:60px;border-radius:50%;background:rgba(89,179,125,.18);display:grid;place-items:center;margin:0 auto}
-.tick svg{width:30px;height:30px;stroke:var(--ok);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
-.phone{width:46px;height:74px;border:3px solid var(--mpesa);border-radius:10px;margin:0 auto;position:relative;animation:pulse 1.4s ease-in-out infinite}
-.phone:after{content:"M-PESA";position:absolute;left:0;right:0;top:26px;font:700 8px 'IBM Plex Sans';color:var(--mpesa)}
-@keyframes pulse{50%{transform:scale(1.06)}}
-.rcpt{margin:18px 0 4px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:4px 14px;text-align:left}
-
-
-@media(min-width:900px){
-  .app{flex-direction:row}
-  .side{display:flex;flex-direction:column;width:236px;background:var(--surface);border-right:1px solid var(--line);padding:24px 0 18px;position:sticky;top:0;height:100vh}
-  .side .brand{display:flex;gap:10px;align-items:center;padding:0 20px 20px;border-bottom:1px solid var(--line);margin-bottom:10px}
-  .side button{display:flex;align-items:center;gap:12px;width:100%;padding:11px 20px;background:none;border:0;border-left:3px solid transparent;color:var(--muted);text-align:left;font-size:14px}
-  .side button:hover{color:var(--ink)}
-  .side button.on{color:var(--ink);background:var(--raised);border-left-color:var(--ok)}
-  .side button.on svg{stroke:var(--ok)}
-  .side .foot{margin-top:auto;padding:16px 20px 0;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
-  .tabs,.top .logo,.top div{display:none}
-  .top{justify-content:flex-end;padding-top:6px}
-  main{max-width:860px;padding:22px 36px 60px}
-  .bal{font-size:52px}
-  .hero{padding:26px 28px 24px}
-  .hero .cta{max-width:300px}
-  .shade{align-items:center}
-  .sheet{border-radius:22px}
-}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-
-/* ---- live page additions ---- */
-.hidden{display:none!important}
-.login{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
-.login .card{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:26px 22px}
-.login h1{font-size:22px;margin:14px 0 4px}
-.login p{margin:0;color:var(--muted);font-size:14px}
-.login .logo{width:46px;height:46px;font-size:18px}
-.linkbtn{background:none;border:0;color:var(--ok);font-size:13px;padding:10px 0 0;text-align:left}
-.hint{margin-top:12px;padding:10px 12px;border:1px dashed var(--warn);border-radius:10px;color:var(--warn);font-size:12.5px}
-.row.tap{cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;width:100%;text-align:left;font:inherit;color:inherit}
-.row.tap:hover{background:var(--raised)}
-.empty{padding:22px 14px;color:var(--muted);font-size:14px;text-align:center}
-.skel{height:14px;border-radius:7px;background:var(--raised);margin:10px 14px;animation:pulse2 1.2s ease-in-out infinite}
-@keyframes pulse2{50%{opacity:.5}}
-.who{cursor:pointer}
-.bad{width:60px;height:60px;border-radius:50%;background:rgba(226,87,76,.16);display:grid;place-items:center;margin:0 auto;color:var(--alert);font-size:28px;font-weight:700}
-.btn.ghost{margin-top:10px}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--raised);border:1px solid var(--line);padding:10px 16px;border-radius:12px;font-size:13.5px;z-index:40;max-width:90vw}
-@media print{
-  body{background:#fff;color:#000}
-  .app,.tabs,.toast,.login,.x,.noprint{display:none!important}
-  .shade{position:static;background:none;display:block!important}
-  .sheet{border:0;background:#fff;color:#000;max-width:none;animation:none;padding:0}
-  .rcpt{border-color:#999;background:#fff}.muted{color:#444}.mono,.kv b{color:#000}
-}
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<noscript>This page needs JavaScript to work.</noscript>
 
-<!-- sign in: phone number, then the code we text to it -->
-<div class="login hidden" id="login"><div class="card" id="loginCard"></div></div>
-
-<div class="app hidden" id="app">
-  <nav class="side" id="side"></nav>
-  <main>
-    <div class="top">
-      <div class="logo" id="topLogo">K</div>
-      <div><b id="topSchool">Parent portal</b><span>Parent portal</span></div>
-      <button class="who" id="who" title="Account" aria-label="Account"></button>
+<!-- ============ LANDING PAGE (one click to the real staff login) ============ -->
+<div class="landing-wrap" id="landingScreen">
+  <div class="landing-nav">
+    <div class="login-brand">Karo Recon</div>
+    <div class="landing-nav-actions">
+      <a class="landing-link" href="/pay">Parents: pay fees</a>
+      <button class="btn primary small" onclick="goToLogin()">Staff sign in &rarr;</button>
     </div>
-    <div class="kids" id="kids"></div>
-    <div id="view"></div>
-  </main>
+  </div>
+
+  <div class="landing-hero">
+    <div class="landing-kicker">School fee collection &amp; reconciliation</div>
+    <h1 class="landing-h1">Know who paid, for which child, the moment the money lands.</h1>
+    <p class="landing-p">Karo Recon reads every fee payment that reaches your M-Pesa Paybill and your school's bank accounts and matches it to the right student on its own. Siblings, typos and shared phone numbers are handled safely, and anything uncertain waits for a person instead of being guessed.</p>
+    <div class="landing-cta">
+      <button class="btn primary" style="width:auto;flex:none;padding:12px 26px;font-size:14px;" onclick="goToLogin()">Sign in to your school &rarr;</button>
+      <a class="btn-ghost" href="/pay">I am a parent</a>
+    </div>
+  </div>
+
+  <div class="landing-section">
+    <h2 class="landing-h2">How a payment is handled</h2>
+    <div class="steps">
+      <div class="step"><div class="step-n">1</div><h3>The payment arrives</h3><p>Safaricom or the bank tells the school's own private address the moment a payment is made. Nobody uploads a statement or types anything in.</p></div>
+      <div class="step"><div class="step-n">2</div><h3>It is matched to a student</h3><p>The account number, the payer's name and phone are checked against your students. Only a confident match is applied. A payment that could be two children, or none, is held.</p></div>
+      <div class="step"><div class="step-n">3</div><h3>The balance and the record update</h3><p>The student's term balance drops, the payment appears in their history, and anything held goes to the Review queue for a person to confirm.</p></div>
+    </div>
+  </div>
+
+  <div class="landing-section">
+    <h2 class="landing-h2">What your school gets</h2>
+    <div class="landing-features">
+      <div class="lf-card"><div class="lf-ic">&#9670;</div><h3>Siblings handled correctly</h3><p>When one phone pays for two children, the system asks. It never silently decides which child the money belongs to.</p></div>
+      <div class="lf-card"><div class="lf-ic">&#9888;</div><h3>A review queue, not guesses</h3><p>Uncertain and unmatched payments wait in one place with the reason they were held, until a real person decides.</p></div>
+      <div class="lf-card"><div class="lf-ic">&#9776;</div><h3>Fees, terms and balances</h3><p>Fee structure per class, terms, optional fees and balances brought forward, so each student's balance is worked out from your own fee set-up.</p></div>
+      <div class="lf-card"><div class="lf-ic">&#9638;</div><h3>Reports and an activity log</h3><p>See what was collected, what is outstanding, and who changed what and when. Every important action is recorded.</p></div>
+      <div class="lf-card"><div class="lf-ic">&#128241;</div><h3>A portal for parents</h3><p>Parents sign in with their phone number, see each child's fees, payments and receipts, and can pay by an M-Pesa prompt on their phone or from the M-Pesa menu.</p></div>
+      <div class="lf-card"><div class="lf-ic">&#128274;</div><h3>Private to each school</h3><p>Each school's payment keys are encrypted separately and never shown again after they are saved. Staff have their own sign-ins and roles, and sensitive actions ask for a PIN.</p></div>
+    </div>
+  </div>
+
+  <div class="landing-foot">Built for Kenyan schools &middot; Karo Recon by Zuvy Technologies</div>
 </div>
-<nav class="tabs hidden" id="tabs"></nav>
 
-<div class="shade" id="shade" role="dialog" aria-modal="true"><div class="sheet" id="sheet"></div></div>
-<div class="toast hidden" id="toast"></div>
+<!-- ============ LOGIN SCREEN ============ -->
+<div class="login-wrap" id="loginScreen" style="display:none;">
+  <div class="login-box">
+    <p class="back-link" onclick="backToLanding()">&larr; Back</p>
+    <div class="login-brand">Karo Recon</div>
+    <p class="login-sub">Sign in to your school's account</p>
+    <div class="login-err" id="loginErr">Invalid email or password</div>
+    <label class="field">Email</label>
+    <input type="email" id="loginEmail" placeholder="you@school.ac.ke" autocomplete="username">
+    <label class="field">Password</label>
+    <div class="pw-wrap"><input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password"><button type="button" class="pw-eye" id="pwEye" aria-label="Show password" title="Show password" onclick="togglePw()"><svg id="pwEyeIc" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+    <button class="btn primary wide" style="margin-top:18px;" onclick="attemptLogin()">Sign in</button>
+    <p class="login-foot">No account yet? Ask your school admin to add you under Staff. You will get an email with a link.</p>
+  </div>
+</div>
 
-<script src="portal.js"></script>
+<!-- ============ MAIN APP (hidden until logged in) ============ -->
+<div class="app" id="mainApp" style="display:none;">
+
+  <div class="sidebar">
+    <div class="brand"><button type="button" class="fold-btn" id="foldBtn" onclick="shellToggleFold()" aria-label="Fold the menu" title="Fold the menu">&#9664;</button><div class="brand-logo" id="brandLogo"></div><b class="brand-name" id="brandName">Karo Recon</b><span id="brandSub">Fee Reconciliation</span></div>
+    <div class="navsec">Money</div>
+    <div class="nav active" data-view="dashboard"><span class="ic">&#9670;</span> Dashboard</div>
+    <div class="nav" data-view="payments"><span class="ic">&#9776;</span> Payments</div>
+    <div class="nav" data-view="reviewqueue"><span class="ic">&#9888;</span> Review queue</div>
+    <div class="nav" data-view="feestructure"><span class="ic">&#9637;</span> Fee structure</div>
+    <div class="navsec">Students</div>
+    <div class="nav" data-view="roster"><span class="ic">&#9638;</span> Students &amp; balances</div>
+    <div class="nav" data-view="admit"><span class="ic">&#43;</span> Admit students</div>
+    <div class="nav" data-view="promotion"><span class="ic">&#8593;</span> Promotion & transfers</div>
+    <div class="navsec">Setup</div>
+    <div class="nav" data-view="classes"><span class="ic">&#9776;</span> Classes &amp; streams</div>
+    <div class="nav" data-view="terms"><span class="ic">&#128197;</span> Academic years &amp; terms</div>
+    <div class="nav" data-view="optionalfees"><span class="ic">&#9737;</span> Optional fees</div>
+    <div class="nav" data-view="banks"><span class="ic">&#9096;</span> Bank connections</div>
+    <div class="navsec">School</div>
+    <div class="nav" data-view="staff"><span class="ic">&#9678;</span> Staff</div>
+    <div class="nav" data-view="auditlog"><span class="ic">&#128220;</span> Activity log</div>
+    <div class="nav" data-view="reports"><span class="ic">&#128202;</span> Reports</div>
+    <div class="nav" data-view="settings"><span class="ic">&#9881;</span> School settings</div>
+    <div class="sidebar-foot">
+      <div class="term-badge"><span id="termBadgeText">Term</span><span class="live" id="termBadgeState"></span></div>
+      <div class="who-row"><div class="who-avatar" id="sidebarAvatar"></div><span id="sidebarName"></span><span class="logout-link" onclick="logout()">Log out</span></div>
+    </div>
+  </div>
+
+  <div class="mobile-topbar">
+    <button class="menu-btn" onclick="openDrawer()">&#9776;</button>
+    <div class="brand">Karo Recon</div>
+    <div class="term-badge" style="padding:5px 8px;font-size:10px;margin:0;"><span id="termBadgeMobile">Term</span></div>
+  </div>
+
+  <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+  <div class="drawer" id="drawer">
+    <div class="brand" style="padding:0 22px 20px;border-bottom:1px solid var(--line);margin-bottom:8px;">Karo Recon<span>Fee Reconciliation</span></div>
+    <div class="navsec">Money</div>
+    <div class="nav active" data-view="dashboard"><span class="ic">&#9670;</span> Dashboard</div>
+    <div class="nav" data-view="payments"><span class="ic">&#9776;</span> Payments</div>
+    <div class="nav" data-view="reviewqueue"><span class="ic">&#9888;</span> Review queue</div>
+    <div class="nav" data-view="feestructure"><span class="ic">&#9637;</span> Fee structure</div>
+    <div class="navsec">Students</div>
+    <div class="nav" data-view="roster"><span class="ic">&#9638;</span> Students &amp; balances</div>
+    <div class="nav" data-view="admit"><span class="ic">&#43;</span> Admit students</div>
+    <div class="nav" data-view="promotion"><span class="ic">&#8593;</span> Promotion & transfers</div>
+    <div class="navsec">Setup</div>
+    <div class="nav" data-view="classes"><span class="ic">&#9776;</span> Classes &amp; streams</div>
+    <div class="nav" data-view="terms"><span class="ic">&#128197;</span> Academic years &amp; terms</div>
+    <div class="nav" data-view="optionalfees"><span class="ic">&#9737;</span> Optional fees</div>
+    <div class="nav" data-view="banks"><span class="ic">&#9096;</span> Bank connections</div>
+    <div class="navsec">School</div>
+    <div class="nav" data-view="staff"><span class="ic">&#9678;</span> Staff</div>
+    <div class="nav" data-view="auditlog"><span class="ic">&#128220;</span> Activity log</div>
+    <div class="nav" data-view="reports"><span class="ic">&#128202;</span> Reports</div>
+    <div class="nav" data-view="settings"><span class="ic">&#9881;</span> School settings</div>
+    <div class="nav" onclick="logout()" style="color:var(--alert);margin-top:10px;">&#8592; Log out</div>
+  </div>
+
+  <main id="main"></main>
+
+  <div class="bottom-nav">
+    <div class="bnav-item active" data-view="dashboard"><span class="ic">&#9670;</span>Home</div>
+    <div class="bnav-item" data-view="reviewqueue"><span class="ic">&#9888;</span>Queue</div>
+    <div class="bnav-item" data-view="roster"><span class="ic">&#9638;</span>Roster</div>
+    <div class="bnav-item" data-view="admit"><span class="ic">&#43;</span>Admit</div>
+    <div class="bnav-item" data-view="feestructure"><span class="ic">&#9637;</span>Fees</div>
+  </div>
+</div>
+
+<div class="review-backdrop" id="reviewBackdrop" onclick="closeReviewPanel()"></div>
+<div class="review-panel" id="reviewPanel">
+  <div class="review-head">
+    <div class="review-head-top">
+      <h3 id="reviewPanelTitle" style="margin:0;">Class</h3>
+      <span class="review-close" onclick="closeReviewPanel()">&#10005;</span>
+    </div>
+    <p class="sub" id="reviewPanelSub" style="margin-top:4px;">Default is promote &mdash; mark only the exceptions</p>
+  </div>
+  <div class="review-body" id="reviewPanelBody"></div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <span class="modal-close" onclick="closeModal()">&#10005;</span>
+    <h3 id="modalTitle">Confirm</h3>
+    <p class="msub" id="modalSub"></p>
+    <div id="modalBody"></div>
+    <div class="actions" style="margin-top:16px;">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="closeModal()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function togglePw(){
+  var i=document.getElementById('loginPassword'), b=document.getElementById('pwEye'), show=i.type==='password';
+  i.type=show?'text':'password';
+  b.setAttribute('aria-label',show?'Hide password':'Show password'); b.title=show?'Hide password':'Show password';
+  document.getElementById('pwEyeIc').innerHTML=show
+    ? '<path d="M17.9 17.9A10.9 10.9 0 0 1 12 19C5 19 1 12 1 12a18.5 18.5 0 0 1 5.1-5.9M9.9 5.1A10.4 10.4 0 0 1 12 5c7 0 11 7 11 7a18.6 18.6 0 0 1-2.2 3.2M1 1l22 22"/>'
+    : '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>';
+  i.focus();
+}
+document.addEventListener('DOMContentLoaded',function(){
+  var e=document.getElementById('loginEmail'); if(e) e.addEventListener('keydown',function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); document.getElementById('loginPassword').focus(); } });
+});
+</script>
+<script src="js/sample-data.js"></script>
+<script src="js/app.js"></script>
+<script src="js/api.js"></script>
+<script src="js/live.js"></script>
+<script src="js/live-screens.js"></script>
+<script src="js/page-balances.js"></script>
+<script src="js/page-student-sheet.js"></script>
+ <script src="js/page-payments.js"></script> 
+ <script src="js/page-dashboard.js"></script>
+<script src="js/page-staff.js"></script>
+<script src="js/page-activity.js"></script>
+<script src="js/page-reports.js"></script>
+<script src="js/shell.js"></script>
+<script src="js/page-review.js"></script>
+<script src="js/page-classes.js"></script>
+<script src="js/page-class-detail.js"></script>
+<script src="js/page-promotion.js"></script>
+<script src="js/page-admit.js"></script>
+<script src="js/page-fees.js"></script>
+<script src="js/page-optional-fees.js"></script>
+<script src="js/page-terms.js"></script>
+<script src="js/page-banks.js"></script>
+<script src="js/page-settings.js"></script>
+<script src="js/page-bank-setup.js"></script>
+<script src="js/page-bank-setup-kcb.js"></script>
+<script src="js/page-bank-setup-mpesa.js"></script>
 </body>
 </html>

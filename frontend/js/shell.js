@@ -42,7 +42,7 @@ function shellLogo(px, school) {
   if (sc.logo) return '<img src="' + sc.logo + '" alt="" style="' + size + 'object-fit:contain;border-radius:' + Math.round(px / 5) + 'px;display:block;background:#fff">';
   let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
   const ini = name.split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0].toUpperCase(); }).join('');
-  return '<div style="' + size + 'border-radius:50%;background:hsl(' + h + ',45%,38%);color:#fff;display:flex;align-items:center;justify-content:center;font:700 ' + Math.round(px * 0.4) + 'px \'Space Grotesk\',sans-serif">' + esc(ini) + '</div>';
+  return '<div style="' + size + 'border-radius:50%;background:hsl(' + h + ',45%,38%);color:#fff;display:flex;align-items:center;justify-content:center;font:700 ' + Math.round(px * 0.4) + 'px \'Fraunces\',serif">' + esc(ini) + '</div>';
 }
 // reads the school profile (name, logo, ...) and puts it in the sidebar; settings calls this again after a save
 async function shellSchool(fresh) {
