@@ -1,6 +1,7 @@
 /**
  * The platform owner's console: log in, add a school with its main admin, list schools with student counts.
- * Nothing here touches a school's bank keys, M-Pesa keys or passkeys.
+ * It CAN save M-Pesa keys on a school's behalf (write-only, with password + code re-checks, logged in the school's activity log).
+ * It can never read a saved key back.
  */
 const { pool } = require('../db/db');
 const { hashPassword, verifyPassword, generateOwnerToken } = require('../security/auth');
@@ -9,6 +10,8 @@ const { createSchoolWithAdmin, normalizeEmail, generatePassword } = require('./s
 const { CHANNELS, ensureSelected } = require('./channels');
 const { saveMpesaKeys, validateKeysInput, checkKeys, registerForSchool } = require('./mpesaSetup');
 const { passkeyState, savePasskey } = require('./mpesaPasskey');
+const totp = require('./totp');
+const { encrypt, decrypt } = require('../security/crypto');
 
 const MAX_FAILS = 5, LOCK_MINUTES = 15;
 function refuse(message, status = 400) { const e = new Error(message); e.status = status; return e; }
@@ -26,16 +29,38 @@ async function createOwner({ email, fullName, password }, db = pool) {
   return r.rows[0];
 }
 
-async function login(emailInput, password) {
+// Second step helpers. column is one of two fixed names (never user input): the login and the key actions keep separate "last used" counters.
+async function acceptSecondStep(row, code, column) {
+  if (!row.totp_secret_enc) return false;
+  const step = totp.checkCode(decrypt(row.totp_secret_enc), code, row[column]);
+  if (!step) return false;
+  await pool.query(`UPDATE platform_owners SET ${column === 'totp_last_step_action' ? 'totp_last_step_action' : 'totp_last_step'} = $1 WHERE id = $2`, [step, row.id]);
+  return true;
+}
+async function acceptBackup(row, code) {                                 // sign-in only; each backup code works once
+  const h = totp.hashBackup(code), list = Array.isArray(row.backup_codes) ? row.backup_codes : [];
+  if (!list.includes(h)) return false;
+  await pool.query('UPDATE platform_owners SET backup_codes = $1 WHERE id = $2', [JSON.stringify(list.filter((x) => x !== h)), row.id]);
+  return true;
+}
+
+async function login(emailInput, password, code) {
   const mail = normalizeEmail(emailInput);
   const key = 'owner:' + mail;
   const mins = await lockedMinutes(key);
   if (mins) throw refuse(`Too many wrong tries. Try again in ${mins} minute${mins === 1 ? '' : 's'}.`, 429);
-  const o = (await pool.query('SELECT id, email, full_name, password_hash, token_version FROM platform_owners WHERE email = $1', [mail])).rows[0];
+  const o = (await pool.query('SELECT id, email, full_name, password_hash, token_version, totp_enabled, totp_secret_enc, totp_last_step, backup_codes FROM platform_owners WHERE email = $1', [mail])).rows[0];
   const ok = await verifyPassword(String(password || ''), o && o.password_hash);
   if (!o || !ok) {
     const { locked } = await recordFailure(key, MAX_FAILS, LOCK_MINUTES);
     throw refuse(locked ? `Too many wrong tries. Try again in ${LOCK_MINUTES} minutes.` : 'Wrong email or password.', locked ? 429 : 401);
+  }
+  if (o.totp_enabled) {
+    if (!String(code || '').trim()) return { needs_code: true };        // the password was right: now ask for the 6 digits (or a backup code)
+    if (!((await acceptSecondStep(o, code, 'totp_last_step')) || (await acceptBackup(o, code)))) {
+      const { locked } = await recordFailure(key, MAX_FAILS, LOCK_MINUTES);
+      throw refuse(locked ? `Too many wrong tries. Try again in ${LOCK_MINUTES} minutes.` : 'That code is not right.', locked ? 429 : 401);
+    }
   }
   await clearFailures(key);
   await pool.query('UPDATE platform_owners SET last_login_at = NOW() WHERE id = $1', [o.id]);
@@ -113,15 +138,16 @@ async function updateApplication(id, { status, note }, db = pool) {
 //  3. Replacing something already saved also needs the typed word RESET.
 //  4. Every action is written to the SCHOOL's activity log as "Zuvy Technologies". If that line cannot be written, the owner sees an error.
 // ---------------------------------------------------------------------------------------------
-async function reauth(ownerId, password, ip) {
+async function reauth(ownerId, password, ip, code) {
   const key = 'owner-keys:' + ownerId;
   const mins = await lockedMinutes(key);
-  if (mins) throw refuse('Too many wrong passwords. Try again in ' + mins + ' minutes.', 429);
-  const o = (await pool.query('SELECT password_hash FROM platform_owners WHERE id = $1', [ownerId])).rows[0];
+  if (mins) throw refuse('Too many wrong tries. Try again in ' + mins + ' minutes.', 429);
+  const o = (await pool.query('SELECT id, password_hash, totp_enabled, totp_secret_enc, totp_last_step_action FROM platform_owners WHERE id = $1', [ownerId])).rows[0];
   const ok = o ? await verifyPassword(String(password || ''), o.password_hash) : false;
-  if (!ok) {
+  const codeOk = !o || !o.totp_enabled || (await acceptSecondStep(o, code, 'totp_last_step_action'));   // two-step on: the current 6 digits are needed too
+  if (!ok || !codeOk) {
     const { locked } = await recordFailure(key, MAX_FAILS, LOCK_MINUTES);
-    throw refuse(locked ? 'Too many wrong passwords. Locked for ' + LOCK_MINUTES + ' minutes.' : 'Your owner password is not right.', locked ? 429 : 403);
+    throw refuse(locked ? 'Too many wrong tries. Locked for ' + LOCK_MINUTES + ' minutes.' : (!ok ? 'Your owner password is not right.' : 'The 6-digit code is not right. If you just used it, wait for the next one.'), locked ? 429 : 403);
   }
   await clearFailures(key);
 }
@@ -141,22 +167,22 @@ async function mpesaState(schoolId) {
   return { school: sc.name, paybill: sc.mpesa_shortcode || null, keys_saved: !!sc.keys_saved, passkey_saved: !!pk.hasPasskey };   // only yes/no: never a key
 }
 
-async function ownerSaveMpesaKeys({ owner, ip, schoolId, paybill, consumerKey, consumerSecret, password, confirmText }) {
+async function ownerSaveMpesaKeys({ owner, ip, schoolId, paybill, consumerKey, consumerSecret, password, confirmText, code }) {
   const input = { paybill, consumerKey, consumerSecret };
   validateKeysInput(input);                                         // a typo never costs a password attempt
   const st = await mpesaState(schoolId);
   if (st.keys_saved && String(confirmText || '').trim().toUpperCase() !== 'RESET') throw refuse('Type RESET to replace keys that are already saved.');
-  await reauth(owner.id, password, ip);
+  await reauth(owner.id, password, ip, code);
   const { replaced } = await saveMpesaKeys({ schoolId, ...input });
   await ensureSelected(schoolId, 'mpesa');
   await auditStrict({ schoolId, action: replaced ? 'mpesa_keys_replaced' : 'mpesa_keys_saved', detail: {}, ip });
   return { ok: true, replaced };
 }
 
-async function ownerSavePasskey({ owner, ip, schoolId, passkey, password, confirmText }) {
+async function ownerSavePasskey({ owner, ip, schoolId, passkey, password, confirmText, code }) {
   const st = await passkeyState(schoolId);
   if (st.hasPasskey && String(confirmText || '').trim().toUpperCase() !== 'RESET') throw refuse('Type RESET to replace a passkey that is already saved.');
-  await reauth(owner.id, password, ip);
+  await reauth(owner.id, password, ip, code);
   const r = await savePasskey(schoolId, passkey, { replace: st.hasPasskey, staffId: null, by: 'zuvy' });   // logs itself, as Zuvy
   return { ok: true, replaced: r.replaced };
 }
@@ -167,16 +193,45 @@ async function ownerCheckMpesa({ ip, schoolId }) {
   return result;
 }
 
-async function ownerRegisterMpesa({ owner, ip, schoolId, dry, confirmPaybill, password }) {
+async function ownerRegisterMpesa({ owner, ip, schoolId, dry, confirmPaybill, password, code }) {
   const base = process.env.PUBLIC_BASE_URL;
   const rehearsal = await registerForSchool({ schoolId, staffId: null, base, dry: true });
   if (dry) return { ok: true, dry: true, preview: rehearsal.preview };
   const typed = String(confirmPaybill || '').replace(/\s+/g, '');
   if (!typed || typed !== rehearsal.school.shortcode) throw refuse("Type the school's Paybill number to confirm.");
-  await reauth(owner.id, password, ip);
+  await reauth(owner.id, password, ip, code);
   const result = await registerForSchool({ schoolId, staffId: null, base, by: 'zuvy' });   // logs itself, as Zuvy
   await ensureSelected(schoolId, 'mpesa');
   return { ok: true, preview: result.preview };
 }
 
-module.exports = { createOwner, login, listSchools, addSchool, listApplications, updateApplication, resetAdminPassword, setSchoolPaused, addSchoolChannel, mpesaState, ownerSaveMpesaKeys, ownerSavePasskey, ownerCheckMpesa, ownerRegisterMpesa };
+// ---- Two-step sign-in for the owner ----
+async function twoStepEnabled(ownerId) {
+  const r = (await pool.query('SELECT totp_enabled FROM platform_owners WHERE id = $1', [ownerId])).rows[0];
+  return !!(r && r.totp_enabled);
+}
+async function twoStepStart(owner) {
+  if (await twoStepEnabled(owner.id)) throw refuse('Two-step sign-in is already on.');
+  const secret = totp.newSecret();
+  await pool.query('UPDATE platform_owners SET totp_secret_enc = $1 WHERE id = $2', [encrypt(secret), owner.id]);
+  return { secret, otpauth: totp.otpauthUri(secret, owner.email) };
+}
+async function twoStepEnable(owner, code) {
+  const row = (await pool.query('SELECT id, totp_enabled, totp_secret_enc FROM platform_owners WHERE id = $1', [owner.id])).rows[0];
+  if (!row || !row.totp_secret_enc) throw refuse('Press Start again.');
+  if (row.totp_enabled) throw refuse('Two-step sign-in is already on.');
+  const step = totp.checkCode(decrypt(row.totp_secret_enc), code, 0);
+  if (!step) throw refuse('That code is not right. Check the 6 digits in your app and try again.');
+  const codes = totp.newBackupCodes(10);
+  // token_version + 1 signs out every other session, including a stolen one. This one must sign in again too, with the app.
+  await pool.query('UPDATE platform_owners SET totp_enabled = TRUE, totp_last_step = $1, totp_last_step_action = $1, backup_codes = $2, token_version = token_version + 1 WHERE id = $3',
+    [step, JSON.stringify(codes.map(totp.hashBackup)), owner.id]);
+  return { ok: true, backup_codes: codes };
+}
+async function twoStepDisable(owner, ip, password, code) {
+  await reauth(owner.id, password, ip, code);                      // needs the password AND a current code
+  await pool.query(`UPDATE platform_owners SET totp_enabled = FALSE, totp_secret_enc = NULL, backup_codes = '[]'::jsonb, token_version = token_version + 1 WHERE id = $1`, [owner.id]);
+  return { ok: true };
+}
+
+module.exports = { createOwner, login, listSchools, addSchool, listApplications, updateApplication, resetAdminPassword, setSchoolPaused, addSchoolChannel, mpesaState, ownerSaveMpesaKeys, ownerSavePasskey, ownerCheckMpesa, ownerRegisterMpesa, twoStepEnabled, twoStepStart, twoStepEnable, twoStepDisable };

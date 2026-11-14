@@ -30,3 +30,10 @@ CREATE TABLE IF NOT EXISTS school_applications (
 
 -- A paused school: its staff cannot sign in. Payments keep being recorded.
 ALTER TABLE schools ADD COLUMN IF NOT EXISTS suspended_at TIMESTAMPTZ;
+
+-- Two-step sign-in for the owner. The secret is stored ENCRYPTED; backup codes only as hashes.
+ALTER TABLE platform_owners ADD COLUMN IF NOT EXISTS totp_secret_enc TEXT;
+ALTER TABLE platform_owners ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE platform_owners ADD COLUMN IF NOT EXISTS totp_last_step BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE platform_owners ADD COLUMN IF NOT EXISTS totp_last_step_action BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE platform_owners ADD COLUMN IF NOT EXISTS backup_codes JSONB NOT NULL DEFAULT '[]'::jsonb;

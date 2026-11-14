@@ -13,7 +13,7 @@ function limited(ip) {
 router.post('/login', async (req, res, next) => {
   try {
     if (limited(req.ip)) return res.status(429).json({ error: 'Too many tries. Wait a while.' });
-    res.json(await owner.login(req.body.email, req.body.password));
+    res.json(await owner.login(req.body.email, req.body.password, req.body.code));
   } catch (e) { next(e); }
 });
 router.get('/me', requireOwner, (req, res) => res.json({ owner: req.owner }));
@@ -31,18 +31,23 @@ router.post('/schools/:id/pause', requireOwner, async (req, res, next) => { try 
 router.post('/schools/:id/channel', requireOwner, async (req, res, next) => { try { res.json(await owner.addSchoolChannel(Number(req.params.id), String(req.body.channel || ''))); } catch (e) { next(e); } });
 // M-Pesa set-up on a school's behalf. Keys go IN here and never come back out (see the rules in ownerConsole.js).
 const ip = (req) => req.ip;
-router.get('/schools/:id/mpesa', requireOwner, async (req, res, next) => { try { res.json(await owner.mpesaState(Number(req.params.id))); } catch (e) { next(e); } });
+router.get('/schools/:id/mpesa', requireOwner, async (req, res, next) => { try { res.json({ ...(await owner.mpesaState(Number(req.params.id))), two_step: await owner.twoStepEnabled(req.owner.id) }); } catch (e) { next(e); } });
 router.post('/schools/:id/mpesa/keys', requireOwner, async (req, res, next) => {
   try {
     const b = req.body || {};
-    res.json(await owner.ownerSaveMpesaKeys({ owner: req.owner, ip: ip(req), schoolId: Number(req.params.id), paybill: b.paybill, consumerKey: b.consumer_key, consumerSecret: b.consumer_secret, password: b.owner_password, confirmText: b.confirm_text }));
+    res.json(await owner.ownerSaveMpesaKeys({ owner: req.owner, ip: ip(req), schoolId: Number(req.params.id), paybill: b.paybill, consumerKey: b.consumer_key, consumerSecret: b.consumer_secret, password: b.owner_password, code: b.code, confirmText: b.confirm_text }));
   } catch (e) { next(e); }
 });
 router.post('/schools/:id/mpesa/passkey', requireOwner, async (req, res, next) => {
-  try { const b = req.body || {}; res.json(await owner.ownerSavePasskey({ owner: req.owner, ip: ip(req), schoolId: Number(req.params.id), passkey: b.passkey, password: b.owner_password, confirmText: b.confirm_text })); } catch (e) { next(e); }
+  try { const b = req.body || {}; res.json(await owner.ownerSavePasskey({ owner: req.owner, ip: ip(req), schoolId: Number(req.params.id), passkey: b.passkey, password: b.owner_password, code: b.code, confirmText: b.confirm_text })); } catch (e) { next(e); }
 });
 router.post('/schools/:id/mpesa/check', requireOwner, async (req, res, next) => { try { res.json(await owner.ownerCheckMpesa({ ip: ip(req), schoolId: Number(req.params.id) })); } catch (e) { next(e); } });
 router.post('/schools/:id/mpesa/register', requireOwner, async (req, res, next) => {
-  try { const b = req.body || {}; res.json(await owner.ownerRegisterMpesa({ owner: req.owner, ip: ip(req), schoolId: Number(req.params.id), dry: !!b.dry, confirmPaybill: b.confirm_paybill, password: b.owner_password })); } catch (e) { next(e); }
+  try { const b = req.body || {}; res.json(await owner.ownerRegisterMpesa({ owner: req.owner, ip: ip(req), schoolId: Number(req.params.id), dry: !!b.dry, confirmPaybill: b.confirm_paybill, password: b.owner_password, code: b.code })); } catch (e) { next(e); }
 });
+// Two-step sign-in for the owner account.
+router.get('/2fa', requireOwner, async (req, res, next) => { try { res.json({ enabled: await owner.twoStepEnabled(req.owner.id) }); } catch (e) { next(e); } });
+router.post('/2fa/start', requireOwner, async (req, res, next) => { try { res.json(await owner.twoStepStart(req.owner)); } catch (e) { next(e); } });
+router.post('/2fa/enable', requireOwner, async (req, res, next) => { try { res.json(await owner.twoStepEnable(req.owner, (req.body || {}).code)); } catch (e) { next(e); } });
+router.post('/2fa/disable', requireOwner, async (req, res, next) => { try { const b = req.body || {}; res.json(await owner.twoStepDisable(req.owner, req.ip, b.owner_password, b.code)); } catch (e) { next(e); } });
 module.exports = router;

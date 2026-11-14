@@ -101,9 +101,61 @@ function login(msg) {
   app.innerHTML = `<div class="card" style="max-width:380px;margin:60px auto"><h1 style="margin-bottom:14px">Zuvy Owner</h1>
   <label>Email</label><input id="e" type="email" autocomplete="username">
   <label>Password</label><input id="p" type="password" autocomplete="current-password">
+  <div id="cw" style="display:none"><label>6-digit code from your app <span class="muted">(or a backup code)</span></label><input id="c" autocomplete="one-time-code" inputmode="text"></div>
   <button id="go">Sign in</button><div class="err" id="m">${esc(msg || '')}</div></div>`;
-  const go = async () => { try { const j = await api('/login', { email: e.value, password: p.value }); token = j.token; try { sessionStorage.setItem('ownerToken', token); } catch (x) {} home(); } catch (x) { m.textContent = x.message; } };
-  document.getElementById('go').onclick = go; p.onkeydown = (ev) => { if (ev.key === 'Enter') go(); };
+  const go = async () => {
+    try {
+      const j = await api('/login', { email: e.value, password: p.value, code: c.value });
+      if (j.needs_code) { cw.style.display = 'block'; c.focus(); m.style.color = 'var(--teal)'; m.textContent = 'Enter the 6 digits from your authenticator app.'; return; }
+      token = j.token; try { sessionStorage.setItem('ownerToken', token); } catch (x) {} home();
+    } catch (x) { m.style.color = 'var(--rust)'; m.textContent = x.message; }
+  };
+  document.getElementById('go').onclick = go; p.onkeydown = (ev) => { if (ev.key === 'Enter') go(); }; c.onkeydown = (ev) => { if (ev.key === 'Enter') go(); };
+}
+
+/* ---- Two-step sign-in for this owner account ---- */
+async function securityPanel() {
+  const m = document.createElement('div'); m.className = 'modal'; document.body.appendChild(m);
+  async function draw(note, bad) {
+    let st; try { st = await api('/2fa'); } catch (x) { m.remove(); alert(x.message); return; }
+    m.innerHTML = `<div class="box" style="max-width:520px;max-height:92vh;overflow:auto"><h2>Security</h2>
+      <p>Two-step sign-in is <b>${st.enabled ? 'ON' : 'OFF'}</b>.</p>
+      ${st.enabled
+        ? `<p class="muted">Signing in and saving keys need the 6 digits from your authenticator app. To turn it off you need your password and a current code.</p>
+           <label>Owner password</label><input id="dp" type="password" autocomplete="current-password"><label>6-digit code</label><input id="dc" inputmode="numeric" autocomplete="one-time-code">
+           <div class="acts"><button class="danger" id="doff">Turn off</button></div>`
+        : `<p class="muted">This protects the account that can set up every school. You need an authenticator app, such as Google Authenticator, Microsoft Authenticator or Authy.</p><div class="acts"><button id="sstart">Turn on</button></div>`}
+      <div id="sbox"></div>
+      <div class="err" id="smsg" style="color:${bad ? 'var(--rust)' : 'var(--teal)'}">${esc(note || '')}</div>
+      <div class="row"><button class="ghost" id="sx">Close</button></div></div>`;
+    const msg = (t, isBad) => { const q = m.querySelector('#smsg'); q.textContent = t; q.style.color = isBad ? 'var(--rust)' : 'var(--teal)'; };
+    m.querySelector('#sx').onclick = () => m.remove();
+    if (st.enabled) {
+      m.querySelector('#doff').onclick = async () => {
+        if (!(await ask({ title: 'Turn off two-step sign-in?', text: 'Your account will be protected by the password alone.', word: 'TURN OFF', ok: 'Turn off', danger: true }))) return;
+        try { await api('/2fa/disable', { owner_password: m.querySelector('#dp').value, code: m.querySelector('#dc').value }); m.remove(); signOut(); }
+        catch (x) { msg(x.message, true); }
+      };
+    } else {
+      m.querySelector('#sstart').onclick = async () => {
+        try {
+          const j = await api('/2fa/start', {});
+          m.querySelector('#sbox').innerHTML = `<p>1. In your app choose <b>Enter a setup key</b> and type this key:</p><p><code>${esc(j.secret.replace(/(.{4})/g, '$1 ').trim())}</code></p>
+            <p class="muted">On a phone you can also <a href="${esc(j.otpauth)}">open it straight in your authenticator app</a>.</p>
+            <label>2. Type the 6 digits the app shows</label><input id="ec" inputmode="numeric" autocomplete="one-time-code"><div class="acts"><button id="eon">Confirm and turn on</button></div>`;
+          m.querySelector('#eon').onclick = async () => {
+            try {
+              const k = await api('/2fa/enable', { code: m.querySelector('#ec').value });
+              m.innerHTML = `<div class="box" style="max-width:520px"><h2>Save your backup codes</h2><p>Two-step sign-in is on. If you lose your phone, each code below works <b>once</b> in place of the 6 digits. Save them now, in a password manager or on paper. They are not shown again.</p>
+                <p>${k.backup_codes.map((c2) => '<code>' + esc(c2) + '</code>').join(' ')}</p><p class="muted">You will now be signed out. Sign in again using your app.</p><div class="row"><button id="bd">I have saved them</button></div></div>`;
+              m.querySelector('#bd').onclick = () => { m.remove(); signOut(); };
+            } catch (x) { msg(x.message, true); }
+          };
+        } catch (x) { msg(x.message, true); }
+      };
+    }
+  }
+  await draw();
 }
 
 /* ---- what needs attention at a school ---- */
@@ -164,7 +216,7 @@ async function home(created) {
   schools = d.schools;
   try { ap = await api('/applications'); } catch (x) { /* the page still works without the list */ }
   const attention = schools.filter((s) => flags(s).some((f) => f[0] !== 'ok')).length;
-  app.innerHTML = `<div class="top"><h1>Zuvy Owner</h1><button class="ghost" id="out">Sign out</button></div>
+  app.innerHTML = `<div class="top"><h1>Zuvy Owner</h1><div style="display:flex;gap:8px"><button class="ghost" id="sec">Security</button><button class="ghost" id="out">Sign out</button></div></div>
   <div class="tiles">
     <div class="tile"><b>${d.total_schools}</b><span>schools</span></div>
     <div class="tile"><b>${d.total_students}</b><span>students in total</span></div>
@@ -179,6 +231,7 @@ async function home(created) {
   <h2 style="margin:6px 2px 12px">Schools</h2>
   <div class="schools" id="schoolList">${schools.map(schoolHtml).join('') || '<div class="muted">No schools yet.</div>'}</div>`;
   document.getElementById('out').onclick = signOut;
+  document.getElementById('sec').onclick = securityPanel;
   wireApps(); wireSchools();
   document.getElementById('add').onclick = async () => {
     const b = document.getElementById('add'); b.disabled = true; m2.textContent = '';
@@ -219,14 +272,16 @@ async function mpesaPanel(id) {
       <label>STK passkey (optional)</label><input id="mpk" type="password" autocomplete="new-password">
       <div class="acts" style="margin:0 0 14px"><button class="ghost" id="bp" ${st.keys_saved ? '' : 'disabled'}>${st.passkey_saved ? 'Replace passkey' : 'Save passkey'}</button><button class="ghost" id="br" ${st.keys_saved ? '' : 'disabled'}>Register addresses with Safaricom</button></div>
       <label>Your owner password (needed for every save)</label><input id="mpw" type="password" autocomplete="current-password">
+      ${st.two_step ? '<label>6-digit code from your app</label><input id="mc" inputmode="numeric" autocomplete="one-time-code">' : ''}
       <div class="err" id="mmsg" style="color:${bad ? 'var(--rust)' : 'var(--teal)'}">${esc(note || '')}</div>
       <div class="row"><button class="ghost" id="mx">Close</button></div></div>`;
     const val = (q) => m.querySelector(q).value;
+    const codeVal = () => (m.querySelector('#mc') ? m.querySelector('#mc').value : '');
     const msg = (t, isBad) => { const e = m.querySelector('#mmsg'); e.textContent = t; e.style.color = isBad ? 'var(--rust)' : 'var(--teal)'; };
     m.querySelector('#mx').onclick = close;
     m.querySelector('#bk').onclick = async () => {
       if (!(await ask({ title: (st.keys_saved ? 'Replace' : 'Save') + ' the M-Pesa keys?', text: 'For ' + s.name + '. The keys are stored encrypted and can never be read back.', word: st.keys_saved ? 'RESET' : 'SAVE', danger: st.keys_saved }))) return;
-      try { await api('/schools/' + id + '/mpesa/keys', { paybill: val('#mp'), consumer_key: val('#mk'), consumer_secret: val('#ms'), owner_password: val('#mpw'), confirm_text: st.keys_saved ? 'RESET' : '' }); draw('Keys saved. Now press Test keys.'); }
+      try { await api('/schools/' + id + '/mpesa/keys', { paybill: val('#mp'), consumer_key: val('#mk'), consumer_secret: val('#ms'), owner_password: val('#mpw'), code: codeVal(), confirm_text: st.keys_saved ? 'RESET' : '' }); draw('Keys saved. Now press Test keys.'); }
       catch (x) { msg(x.message, true); }
     };
     m.querySelector('#bt').onclick = async () => {
@@ -235,7 +290,7 @@ async function mpesaPanel(id) {
     };
     m.querySelector('#bp').onclick = async () => {
       if (!(await ask({ title: (st.passkey_saved ? 'Replace' : 'Save') + ' the STK passkey?', text: 'For ' + s.name + '. It only switches on the "send request to my phone" button, and can never be read back.', word: st.passkey_saved ? 'RESET' : 'SAVE', danger: st.passkey_saved }))) return;
-      try { await api('/schools/' + id + '/mpesa/passkey', { passkey: val('#mpk'), owner_password: val('#mpw'), confirm_text: st.passkey_saved ? 'RESET' : '' }); draw('Passkey saved.'); }
+      try { await api('/schools/' + id + '/mpesa/passkey', { passkey: val('#mpk'), owner_password: val('#mpw'), code: codeVal(), confirm_text: st.passkey_saved ? 'RESET' : '' }); draw('Passkey saved.'); }
       catch (x) { msg(x.message, true); }
     };
     m.querySelector('#br').onclick = async () => {
@@ -243,7 +298,7 @@ async function mpesaPanel(id) {
         const j = await api('/schools/' + id + '/mpesa/register', { dry: true });
         const pv = (j.preview && typeof j.preview === 'object') ? Object.values(j.preview).filter((x) => typeof x === 'string').join(' · ') : String(j.preview || '');
         if (!(await ask({ title: 'Register with Safaricom?', text: 'Safaricom will be told where to send ' + s.name + '\'s payments (' + pv + '). Type the Paybill number to confirm.', word: String(st.paybill || ''), ok: 'Register', danger: true }))) return;
-        await api('/schools/' + id + '/mpesa/register', { confirm_paybill: st.paybill, owner_password: val('#mpw') }); draw('Registered with Safaricom.');
+        await api('/schools/' + id + '/mpesa/register', { confirm_paybill: st.paybill, owner_password: val('#mpw'), code: codeVal() }); draw('Registered with Safaricom.');
       } catch (x) { msg(x.message, true); }
     };
   }
