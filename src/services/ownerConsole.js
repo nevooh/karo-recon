@@ -7,10 +7,12 @@ const { pool } = require('../db/db');
 const { hashPassword, verifyPassword, generateOwnerToken } = require('../security/auth');
 const { lockedMinutes, recordFailure, clearFailures } = require('./lock');
 const { createSchoolWithAdmin, normalizeEmail, generatePassword } = require('./schoolSetup');
-const { CHANNELS, ensureSelected } = require('./channels');
+const { getSelected } = require('./channels');
 const { saveMpesaKeys, validateKeysInput, checkKeys, registerForSchool } = require('./mpesaSetup');
 const { passkeyState, savePasskey } = require('./mpesaPasskey');
 const { connectSchoolToBank, listSchoolBankConnections } = require('./bankConnections');
+const { generateEquityCallbackCredentials } = require('./equitySetup');
+const { generateCoopCallbackCredentials } = require('./coopSetup');
 const totp = require('./totp');
 const { encrypt, decrypt } = require('../security/crypto');
 
@@ -104,17 +106,6 @@ async function setSchoolPaused(schoolId, paused, db = pool) {
   return { ok: true, paused: !!paused };
 }
 
-// Switch a bank (or M-Pesa) on for a school. This only makes it visible; the school still does its own set-up.
-async function addSchoolChannel(schoolId, channel, ip = null, db = pool) {
-  if (!Number.isInteger(schoolId)) throw refuse('School not found.', 404);
-  if (!CHANNELS.includes(channel)) throw refuse('Unknown bank or channel.');
-  if (!(await db.query('SELECT 1 FROM schools WHERE id = $1', [schoolId])).rowCount) throw refuse('School not found.', 404);
-  await ensureSelected(schoolId, channel);
-  const now = (await db.query('SELECT channel FROM school_channels WHERE school_id = $1 ORDER BY channel', [schoolId])).rows.map((x) => x.channel);
-  await auditStrict({ schoolId, action: 'channels_changed', detail: { selected: now }, ip });   // the school's activity log shows it as Zuvy Technologies
-  return { ok: true };
-}
-
 // Adds a school and its main admin. The admin's password is generated and returned ONCE (it is never stored in plain text).
 async function addSchool({ name, adminName, adminEmail }) {
   const out = await createSchoolWithAdmin({ name, adminName, adminEmail });
@@ -141,6 +132,14 @@ async function updateApplication(id, { status, note }, db = pool) {
 //  3. Replacing something already saved also needs the typed word RESET.
 //  4. Every action is written to the SCHOOL's activity log as "Zuvy Technologies". If that line cannot be written, the owner sees an error.
 // ---------------------------------------------------------------------------------------------
+const CHANNEL_LABELS = { mpesa: 'M-Pesa', kcb: 'KCB', equity: 'Equity', coop: 'Co-op' };
+// The SCHOOL chooses its bank in School settings. We only configure what it chose, and never switch anything on for it.
+async function requireChosen(schoolId, channel) {
+  if (!(await getSelected(schoolId)).includes(channel)) {
+    throw refuse('This school has not chosen ' + (CHANNEL_LABELS[channel] || channel) + '. Ask the school to pick its bank in School settings first.', 409);
+  }
+}
+
 async function reauth(ownerId, password, ip, code) {
   const key = 'owner-keys:' + ownerId;
   const mins = await lockedMinutes(key);
@@ -175,9 +174,9 @@ async function ownerSaveMpesaKeys({ owner, ip, schoolId, paybill, consumerKey, c
   validateKeysInput(input);                                         // a typo never costs a password attempt
   const st = await mpesaState(schoolId);
   if (st.keys_saved && String(confirmText || '').trim().toUpperCase() !== 'RESET') throw refuse('Type RESET to replace keys that are already saved.');
+  await requireChosen(schoolId, 'mpesa');
   await reauth(owner.id, password, ip, code);
   const { replaced } = await saveMpesaKeys({ schoolId, ...input });
-  await ensureSelected(schoolId, 'mpesa');
   await auditStrict({ schoolId, action: replaced ? 'mpesa_keys_replaced' : 'mpesa_keys_saved', detail: {}, ip });
   return { ok: true, replaced };
 }
@@ -185,6 +184,7 @@ async function ownerSaveMpesaKeys({ owner, ip, schoolId, paybill, consumerKey, c
 async function ownerSavePasskey({ owner, ip, schoolId, passkey, password, confirmText, code }) {
   const st = await passkeyState(schoolId);
   if (st.hasPasskey && String(confirmText || '').trim().toUpperCase() !== 'RESET') throw refuse('Type RESET to replace a passkey that is already saved.');
+  await requireChosen(schoolId, 'mpesa');
   await reauth(owner.id, password, ip, code);
   const r = await savePasskey(schoolId, passkey, { replace: st.hasPasskey, staffId: null, by: 'zuvy' });   // logs itself, as Zuvy
   return { ok: true, replaced: r.replaced };
@@ -197,6 +197,7 @@ async function ownerCheckMpesa({ ip, schoolId }) {
 }
 
 async function ownerRegisterMpesa({ owner, ip, schoolId, dry, confirmPaybill, password, code }) {
+  await requireChosen(schoolId, 'mpesa');
   const base = process.env.PUBLIC_BASE_URL;
   const rehearsal = await registerForSchool({ schoolId, staffId: null, base, dry: true });
   if (dry) return { ok: true, dry: true, preview: rehearsal.preview };
@@ -204,7 +205,6 @@ async function ownerRegisterMpesa({ owner, ip, schoolId, dry, confirmPaybill, pa
   if (!typed || typed !== rehearsal.school.shortcode) throw refuse("Type the school's Paybill number to confirm.");
   await reauth(owner.id, password, ip, code);
   const result = await registerForSchool({ schoolId, staffId: null, base, by: 'zuvy' });   // logs itself, as Zuvy
-  await ensureSelected(schoolId, 'mpesa');
   return { ok: true, preview: result.preview };
 }
 
@@ -241,6 +241,7 @@ async function ownerSaveKcb({ owner, ip, schoolId, accountNumber, password, conf
   if ((await pool.query(`SELECT 1 FROM school_bank_connections sbc JOIN bank_providers bp ON bp.id = sbc.provider_id WHERE bp.code = 'kcb' AND sbc.account_number = $1 AND sbc.school_id <> $2 LIMIT 1`, [num, schoolId])).rowCount) {
     throw refuse('That account number is already used by another school.', 409);
   }
+  await requireChosen(schoolId, 'kcb');
   const conn = await existingConnection(schoolId, 'kcb');
   if (conn && String(confirmText || '').trim().toUpperCase() !== 'RESET') throw refuse('Type RESET to replace an account number that is already saved.');
   await reauth(owner.id, password, ip, code);
@@ -248,9 +249,79 @@ async function ownerSaveKcb({ owner, ip, schoolId, accountNumber, password, conf
   try {
     await connectSchoolToBank({ schoolId, providerCode: 'kcb', accountNumber: num, credentials: {} });
   } catch (e) { await rollback(); throw e; }                       // if it fails, give the slot back
-  await ensureSelected(schoolId, 'kcb');
   await auditStrict({ schoolId, action: conn ? 'credentials_rotated' : 'credentials_created', detail: { bank: 'kcb' }, ip });
   return { ok: true, replaced: !!conn };
+}
+
+async function equityState(schoolId) {
+  if (!Number.isInteger(schoolId)) throw refuse('School not found.', 404);
+  const row = (await listSchoolBankConnections(schoolId)).find((c) => c.code === 'equity');
+  return { connected: !!row, username: row ? row.account_number : null };        // the username is only an identifier; the password is never kept readable
+}
+
+// Makes the callback password and returns it ONCE. Equity cannot be reached with it: it only lets Equity post payment notifications to us.
+async function ownerGenerateEquity({ owner, ip, schoolId, password, confirmText, code }) {
+  if (!Number.isInteger(schoolId) || !(await pool.query('SELECT 1 FROM schools WHERE id = $1', [schoolId])).rowCount) throw refuse('School not found.', 404);
+  await requireChosen(schoolId, 'equity');
+  const conn = await existingConnection(schoolId, 'equity');
+  if (conn && String(confirmText || '').trim().toUpperCase() !== 'RESET') throw refuse('Type RESET to make a new password.');
+  await reauth(owner.id, password, ip, code);
+  const rollback = conn ? await claimRotationSlot(conn) : async () => {};
+  let creds;
+  try { creds = await generateEquityCallbackCredentials(schoolId); } catch (e) { await rollback(); throw e; }
+  let audit_warning = null;
+  try { await auditStrict({ schoolId, action: conn ? 'credentials_rotated' : 'credentials_created', detail: { bank: 'equity' }, ip }); }
+  catch (e) {   // the password already exists and cannot be shown again, so do not lose it: tell the owner instead
+    console.error('owner audit write failed for Equity set-up:', e.message);
+    audit_warning = 'The activity log line could not be written. Tell whoever looks after the database.';
+  }
+  return {
+    ...creds, audit_warning, show_once: true,
+    steps: [
+      "Sign in to JengaHQ with the school's own login.",
+      "Settings > Alerts: choose the school's account, set the type to Credit only, then paste the username, password and callback URL.",
+      'For online/gateway payments also open Settings > IPNs and paste the same three values.',
+      'Keep the password safe. It cannot be shown again; if it is lost, make a new one and update JengaHQ.',
+    ],
+  };
+}
+
+async function coopState(schoolId) {
+  if (!Number.isInteger(schoolId)) throw refuse('School not found.', 404);
+  const row = (await listSchoolBankConnections(schoolId)).find((c) => c.code === 'coop');
+  return { connected: !!row, account_number: row ? row.account_number : null };
+}
+
+// Co-op names the school's ACCOUNT NUMBER in each message, so that is how we find the school. The password is made here and shown once.
+async function ownerGenerateCoop({ owner, ip, schoolId, accountNumber, password, confirmText, code }) {
+  if (!Number.isInteger(schoolId) || !(await pool.query('SELECT 1 FROM schools WHERE id = $1', [schoolId])).rowCount) throw refuse('School not found.', 404);
+  await requireChosen(schoolId, 'coop');
+  const conn = await existingConnection(schoolId, 'coop');
+  const typed = String(accountNumber == null ? '' : accountNumber).replace(/\s+/g, '');
+  const account = typed || (conn ? (await coopState(schoolId)).account_number : '');
+  if (!/^[A-Za-z0-9]{8,20}$/.test(account || '')) throw refuse("Enter the school's Co-op account number (letters and numbers only, 8 to 20 characters).");
+  if ((await pool.query(`SELECT 1 FROM school_bank_connections sbc JOIN bank_providers bp ON bp.id = sbc.provider_id WHERE bp.code = 'coop' AND sbc.account_number = $1 AND sbc.school_id <> $2 LIMIT 1`, [account, schoolId])).rowCount) {
+    throw refuse('That account number is already used by another school.', 409);
+  }
+  if (conn && String(confirmText || '').trim().toUpperCase() !== 'RESET') throw refuse('Type RESET to make a new password.');
+  await reauth(owner.id, password, ip, code);
+  const rollback = conn ? await claimRotationSlot(conn) : async () => {};
+  let creds;
+  try { creds = await generateCoopCallbackCredentials(schoolId, account); } catch (e) { await rollback(); throw e; }
+  let audit_warning = null;
+  try { await auditStrict({ schoolId, action: conn ? 'credentials_rotated' : 'credentials_created', detail: { bank: 'coop' }, ip }); }
+  catch (e) {
+    console.error('owner audit write failed for Co-op set-up:', e.message);
+    audit_warning = 'The activity log line could not be written. Tell whoever looks after the database.';
+  }
+  return {
+    ...creds, audit_warning, show_once: true,
+    steps: [
+      'The school (the account holder) asks Co-op to subscribe this account to the Instant Notification Service (INS), for CREDIT events.',
+      'Give Co-op the callback URL, the username and the password, together with the account number.',
+      'Keep the password safe. It cannot be shown again; if it is lost, make a new one and give Co-op the new password.',
+    ],
+  };
 }
 
 // ---- Two-step sign-in for the owner ----
@@ -282,4 +353,4 @@ async function twoStepDisable(owner, ip, password, code) {
   return { ok: true };
 }
 
-module.exports = { createOwner, login, listSchools, addSchool, listApplications, updateApplication, resetAdminPassword, setSchoolPaused, addSchoolChannel, mpesaState, ownerSaveMpesaKeys, ownerSavePasskey, ownerCheckMpesa, ownerRegisterMpesa, twoStepEnabled, twoStepStart, twoStepEnable, twoStepDisable, kcbState, ownerSaveKcb };
+module.exports = { createOwner, login, listSchools, addSchool, listApplications, updateApplication, resetAdminPassword, setSchoolPaused, mpesaState, ownerSaveMpesaKeys, ownerSavePasskey, ownerCheckMpesa, ownerRegisterMpesa, twoStepEnabled, twoStepStart, twoStepEnable, twoStepDisable, kcbState, ownerSaveKcb, equityState, ownerGenerateEquity, coopState, ownerGenerateCoop };

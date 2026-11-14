@@ -175,7 +175,7 @@ function flags(s) {
 
 function schoolHtml(s) {
   const fl = flags(s), have = s.channels || [];
-  const addable = Object.keys(BANKS).filter((k) => !have.includes(k));
+  const sup = have.filter((c) => ['mpesa', 'kcb', 'equity', 'coop'].includes(c));          // only what the school itself chose
   const last = ago(s.last_payment_at);
   return `<div class="school" id="sc${s.id}"><h3>${esc(s.name)}</h3>
     <div style="margin:4px 0 8px">${fl.length ? fl.map((x) => `<span class="tag ${x[0]}">${esc(x[1])}</span>`).join('') : '<span class="tag ok">All good</span>'}</div>
@@ -187,11 +187,9 @@ function schoolHtml(s) {
     <div class="kv"><span>Payments, last 14 days</span><span>${s.payments_14d}</span></div>
     <div class="acts">
       <button class="ghost sm" data-do="reset" data-id="${s.id}">Reset admin password</button>
-      <button class="ghost sm" data-do="mpesa" data-id="${s.id}">M-Pesa set-up</button>
-      <button class="ghost sm" data-do="kcb" data-id="${s.id}">KCB set-up</button>
+      ${sup.length ? `<select id="bk${s.id}">${sup.map((k) => `<option value="${k}">${esc(BANKS[k])}</option>`).join('')}</select><button class="ghost sm" data-do="setup" data-id="${s.id}">Bank set-up</button>` : '<span class="muted" style="font-size:13px">Waiting for the school to choose its bank in School settings.</span>'}
       ${s.suspended_at ? `<button class="sm" data-do="resume" data-id="${s.id}">Resume school</button>` : `<button class="ghost sm" data-do="pause" data-id="${s.id}">Pause school</button>`}
     </div>
-    ${addable.length ? `<div class="acts"><select id="ch${s.id}">${addable.map((k) => `<option value="${k}">${esc(BANKS[k])}</option>`).join('')}</select><button class="ghost sm" data-do="addch" data-id="${s.id}">Switch on</button></div>` : ''}
   </div>`;
 }
 
@@ -336,6 +334,92 @@ async function kcbPanel(id) {
   await draw();
 }
 
+/* ---- Equity set-up on a school's behalf. We GENERATE a callback username + password; the password is shown ONCE. ---- */
+async function equityPanel(id) {
+  const s = schools.find((x) => x.id === id); if (!s) return;
+  const m = document.createElement('div'); m.className = 'modal'; document.body.appendChild(m);
+  const close = () => { m.remove(); home(); };                          // removing the box also removes the password from the page
+  const copy = async (text, btn) => { try { await navigator.clipboard.writeText(text); const o = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = o; }, 1500); } catch (x) { btn.textContent = 'Select and copy'; } };
+  async function draw(note, bad) {
+    let st; try { st = await api('/schools/' + id + '/equity'); } catch (x) { m.remove(); alert(x.message); return; }
+    m.innerHTML = `<div class="box" style="max-width:540px;max-height:92vh;overflow:auto"><h2>Equity for ${esc(s.name)}</h2>
+      <p class="muted" style="margin-top:0">Status: <b>${st.connected ? 'set up' : 'not set up'}</b>${st.connected ? ' &middot; callback username <b>' + esc(st.username) + '</b>' : ''}<br>
+      This makes a username and password that the school (or you, with them) pastes into <b>JengaHQ</b>, under Settings &gt; Alerts and Settings &gt; IPNs. It is <b>not</b> a JengaHQ login and cannot open the school's account. It only lets Equity send payment notifications to your server. <b>The password is shown once.</b></p>
+      ${st.connected ? '<p style="color:var(--rust)"><b>Making a new password stops the old one at once.</b> Payments are not received until the new password is pasted into JengaHQ. It can only be done once every 10 minutes.</p>' : ''}
+      <label>Your owner password (needed every time)</label><input id="qpw" type="password" autocomplete="current-password">
+      ${st.two_step ? '<label>6-digit code from your app</label><input id="qc" inputmode="numeric" autocomplete="one-time-code">' : ''}
+      <div class="acts" style="margin:0 0 6px"><button id="qg" class="${st.connected ? 'danger' : ''}">${st.connected ? 'Make a new password' : 'Make the password'}</button></div>
+      <div class="err" id="qmsg" style="color:${bad ? 'var(--rust)' : 'var(--teal)'}">${esc(note || '')}</div>
+      <div class="row"><button class="ghost" id="qx">Close</button></div></div>`;
+    m.querySelector('#qx').onclick = close;
+    m.querySelector('#qg').onclick = async () => {
+      const msg = (t) => { const q = m.querySelector('#qmsg'); q.textContent = t; q.style.color = 'var(--rust)'; };
+      if (!(await ask({ title: st.connected ? 'Make a NEW Equity password?' : 'Make the Equity password?', text: st.connected ? 'The old password stops working at once, and ' + s.name + ' will not receive payments until the new one is pasted into JengaHQ.' : 'For ' + s.name + '. It will be shown once.', word: st.connected ? 'RESET' : 'SAVE', danger: st.connected }))) return;
+      try {
+        const j = await api('/schools/' + id + '/equity', { owner_password: m.querySelector('#qpw').value, code: m.querySelector('#qc') ? m.querySelector('#qc').value : '', confirm_text: st.connected ? 'RESET' : '' });
+        m.innerHTML = `<div class="box" style="max-width:560px;max-height:92vh;overflow:auto"><h2>Copy these now</h2>
+          <p style="color:var(--rust)"><b>The password is shown only once.</b> Closing this box removes it. If you lose it, you must make a new one.</p>
+          <label>Username</label><p><code id="qu">${esc(j.username)}</code> <button class="ghost sm" id="cu">Copy</button></p>
+          <label>Password</label><p><code id="qp">${esc(j.password)}</code> <button class="ghost sm" id="cp">Copy</button></p>
+          <label>Callback URL</label><p><code id="ql" style="font-size:13px">${esc(j.callback_url)}</code> <button class="ghost sm" id="cl">Copy</button></p>
+          ${j.callback_url_is_placeholder ? '<p style="color:var(--rust)">The server has no PUBLIC_BASE_URL setting, so this address is only a placeholder. Set it in Render before giving this to the bank.</p>' : ''}
+          ${j.audit_warning ? '<p style="color:var(--rust)">' + esc(j.audit_warning) + '</p>' : ''}
+          <ol class="muted" style="padding-left:18px">${(j.steps || []).map((x) => '<li>' + esc(x) + '</li>').join('')}</ol>
+          <div class="row"><button id="qd">I have copied it</button></div></div>`;
+        m.querySelector('#cu').onclick = (ev) => copy(j.username, ev.target);
+        m.querySelector('#cp').onclick = (ev) => copy(j.password, ev.target);
+        m.querySelector('#cl').onclick = (ev) => copy(j.callback_url, ev.target);
+        m.querySelector('#qd').onclick = close;
+      } catch (x) { msg(x.message); }
+    };
+  }
+  await draw();
+}
+
+/* ---- Co-op set-up on a school's behalf. Needs the school's Co-op account number; we GENERATE a username + password, shown ONCE. ---- */
+async function coopPanel(id) {
+  const s = schools.find((x) => x.id === id); if (!s) return;
+  const m = document.createElement('div'); m.className = 'modal'; document.body.appendChild(m);
+  const close = () => { m.remove(); home(); };                          // removing the box also removes the password from the page
+  const copy = async (text, btn) => { try { await navigator.clipboard.writeText(text); const o = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = o; }, 1500); } catch (x) { btn.textContent = 'Select and copy'; } };
+  async function draw(note, bad) {
+    let st; try { st = await api('/schools/' + id + '/coop'); } catch (x) { m.remove(); alert(x.message); return; }
+    m.innerHTML = `<div class="box" style="max-width:540px;max-height:92vh;overflow:auto"><h2>Co-op for ${esc(s.name)}</h2>
+      <p class="muted" style="margin-top:0">Status: <b>${st.connected ? 'set up' : 'not set up'}</b>${st.connected ? ' &middot; account <b>' + esc(st.account_number) + '</b>' : ''}<br>
+      This makes a username and password that the school gives to <b>Co-op</b> when it asks Co-op to turn on the Instant Notification Service for its account. It is <b>not</b> a login to the school's account. It only lets Co-op send payment notifications to your server. <b>The password is shown once.</b></p>
+      ${st.connected ? '<p style="color:var(--rust)"><b>Making a new password stops the old one at once.</b> Payments are not received until Co-op has the new password. It can only be done once every 10 minutes.</p>' : ''}
+      <label>School's Co-op account number${st.connected ? ' <span class="muted">(leave it as it is unless it changed)</span>' : ''}</label><input id="oa" autocomplete="off" value="${st.connected ? esc(st.account_number) : ''}">
+      <label>Your owner password (needed every time)</label><input id="opw" type="password" autocomplete="current-password">
+      ${st.two_step ? '<label>6-digit code from your app</label><input id="oc" inputmode="numeric" autocomplete="one-time-code">' : ''}
+      <div class="acts" style="margin:0 0 6px"><button id="og" class="${st.connected ? 'danger' : ''}">${st.connected ? 'Make a new password' : 'Make the password'}</button></div>
+      <div class="err" id="omsg" style="color:${bad ? 'var(--rust)' : 'var(--teal)'}">${esc(note || '')}</div>
+      <div class="row"><button class="ghost" id="ox">Close</button></div></div>`;
+    m.querySelector('#ox').onclick = close;
+    m.querySelector('#og').onclick = async () => {
+      const msg = (t) => { const q = m.querySelector('#omsg'); q.textContent = t; q.style.color = 'var(--rust)'; };
+      if (!(await ask({ title: st.connected ? 'Make a NEW Co-op password?' : 'Make the Co-op password?', text: st.connected ? 'The old password stops working at once, and ' + s.name + ' will not receive payments until Co-op has the new one.' : 'For ' + s.name + '. It will be shown once.', word: st.connected ? 'RESET' : 'SAVE', danger: st.connected }))) return;
+      try {
+        const j = await api('/schools/' + id + '/coop', { account_number: m.querySelector('#oa').value, owner_password: m.querySelector('#opw').value, code: m.querySelector('#oc') ? m.querySelector('#oc').value : '', confirm_text: st.connected ? 'RESET' : '' });
+        m.innerHTML = `<div class="box" style="max-width:560px;max-height:92vh;overflow:auto"><h2>Copy these now</h2>
+          <p style="color:var(--rust)"><b>The password is shown only once.</b> Closing this box removes it. If you lose it, you must make a new one.</p>
+          <label>Account number</label><p><code>${esc(j.account_number)}</code></p>
+          <label>Username</label><p><code>${esc(j.username)}</code> <button class="ghost sm" id="cu">Copy</button></p>
+          <label>Password</label><p><code>${esc(j.password)}</code> <button class="ghost sm" id="cp">Copy</button></p>
+          <label>Callback URL</label><p><code style="font-size:13px">${esc(j.callback_url)}</code> <button class="ghost sm" id="cl">Copy</button></p>
+          ${j.callback_url_is_placeholder ? '<p style="color:var(--rust)">The server has no PUBLIC_BASE_URL setting, so this address is only a placeholder. Set it in Render before giving this to the bank.</p>' : ''}
+          ${j.audit_warning ? '<p style="color:var(--rust)">' + esc(j.audit_warning) + '</p>' : ''}
+          <ol class="muted" style="padding-left:18px">${(j.steps || []).map((x) => '<li>' + esc(x) + '</li>').join('')}</ol>
+          <div class="row"><button id="od">I have copied it</button></div></div>`;
+        m.querySelector('#cu').onclick = (ev) => copy(j.username, ev.target);
+        m.querySelector('#cp').onclick = (ev) => copy(j.password, ev.target);
+        m.querySelector('#cl').onclick = (ev) => copy(j.callback_url, ev.target);
+        m.querySelector('#od').onclick = close;
+      } catch (x) { msg(x.message); }
+    };
+  }
+  await draw();
+}
+
 function wireSchools() {
   document.querySelectorAll('[data-do]').forEach((b) => {
     b.onclick = async () => {
@@ -351,14 +435,13 @@ function wireSchools() {
         } else if (b.dataset.do === 'resume') {
           if (!(await ask({ title: 'Resume ' + s.name + '?', text: 'Staff will be able to sign in again.', ok: 'Resume school' }))) return;
           await api('/schools/' + id + '/pause', { paused: false }); home();
+        } else if (b.dataset.do === 'setup') {
+          const k = document.getElementById('bk' + id).value;
+          ({ mpesa: mpesaPanel, kcb: kcbPanel, equity: equityPanel, coop: coopPanel })[k](id);
         } else if (b.dataset.do === 'kcb') {
           kcbPanel(id);
         } else if (b.dataset.do === 'mpesa') {
           mpesaPanel(id);
-        } else if (b.dataset.do === 'addch') {
-          const ch = document.getElementById('ch' + id).value;
-          if (!(await ask({ title: 'Switch on ' + BANKS[ch] + '?', text: 'It will appear on ' + s.name + '\'s Bank connections page. The school still does its own set-up.', ok: 'Switch on' }))) return;
-          await api('/schools/' + id + '/channel', { channel: ch }); home();
         }
       } catch (x) { alert(x.message); }
     };
