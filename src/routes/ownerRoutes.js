@@ -28,7 +28,7 @@ router.post('/applications/:id', requireOwner, async (req, res, next) => {
 });
 router.post('/schools/:id/reset-admin', requireOwner, async (req, res, next) => { try { res.json(await owner.resetAdminPassword(Number(req.params.id))); } catch (e) { next(e); } });
 router.post('/schools/:id/pause', requireOwner, async (req, res, next) => { try { res.json(await owner.setSchoolPaused(Number(req.params.id), !!req.body.paused)); } catch (e) { next(e); } });
-router.post('/schools/:id/channel', requireOwner, async (req, res, next) => { try { res.json(await owner.addSchoolChannel(Number(req.params.id), String(req.body.channel || ''))); } catch (e) { next(e); } });
+router.post('/schools/:id/channel', requireOwner, async (req, res, next) => { try { res.json(await owner.addSchoolChannel(Number(req.params.id), String(req.body.channel || ''), req.ip)); } catch (e) { next(e); } });
 // M-Pesa set-up on a school's behalf. Keys go IN here and never come back out (see the rules in ownerConsole.js).
 const ip = (req) => req.ip;
 router.get('/schools/:id/mpesa', requireOwner, async (req, res, next) => { try { res.json({ ...(await owner.mpesaState(Number(req.params.id))), two_step: await owner.twoStepEnabled(req.owner.id) }); } catch (e) { next(e); } });
@@ -45,6 +45,12 @@ router.post('/schools/:id/mpesa/check', requireOwner, async (req, res, next) => 
 router.post('/schools/:id/mpesa/register', requireOwner, async (req, res, next) => {
   try { const b = req.body || {}; res.json(await owner.ownerRegisterMpesa({ owner: req.owner, ip: ip(req), schoolId: Number(req.params.id), dry: !!b.dry, confirmPaybill: b.confirm_paybill, password: b.owner_password, code: b.code })); } catch (e) { next(e); }
 });
+// KCB on a school's behalf: only the account (or Vooma till) number. Same guards as M-Pesa.
+router.get('/schools/:id/kcb', requireOwner, async (req, res, next) => { try { res.json({ ...(await owner.kcbState(Number(req.params.id))), two_step: await owner.twoStepEnabled(req.owner.id) }); } catch (e) { next(e); } });
+router.post('/schools/:id/kcb', requireOwner, async (req, res, next) => {
+  try { const b = req.body || {}; res.json(await owner.ownerSaveKcb({ owner: req.owner, ip: req.ip, schoolId: Number(req.params.id), accountNumber: b.account_number, password: b.owner_password, confirmText: b.confirm_text, code: b.code })); } catch (e) { next(e); }
+});
+
 // Two-step sign-in for the owner account.
 router.get('/2fa', requireOwner, async (req, res, next) => { try { res.json({ enabled: await owner.twoStepEnabled(req.owner.id) }); } catch (e) { next(e); } });
 router.post('/2fa/start', requireOwner, async (req, res, next) => { try { res.json(await owner.twoStepStart(req.owner)); } catch (e) { next(e); } });

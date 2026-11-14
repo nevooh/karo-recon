@@ -188,6 +188,7 @@ function schoolHtml(s) {
     <div class="acts">
       <button class="ghost sm" data-do="reset" data-id="${s.id}">Reset admin password</button>
       <button class="ghost sm" data-do="mpesa" data-id="${s.id}">M-Pesa set-up</button>
+      <button class="ghost sm" data-do="kcb" data-id="${s.id}">KCB set-up</button>
       ${s.suspended_at ? `<button class="sm" data-do="resume" data-id="${s.id}">Resume school</button>` : `<button class="ghost sm" data-do="pause" data-id="${s.id}">Pause school</button>`}
     </div>
     ${addable.length ? `<div class="acts"><select id="ch${s.id}">${addable.map((k) => `<option value="${k}">${esc(BANKS[k])}</option>`).join('')}</select><button class="ghost sm" data-do="addch" data-id="${s.id}">Switch on</button></div>` : ''}
@@ -305,6 +306,36 @@ async function mpesaPanel(id) {
   await draw();
 }
 
+/* ---- KCB set-up on a school's behalf. KCB has no secret for the school: only its account (or Vooma till) number. ---- */
+async function kcbPanel(id) {
+  const s = schools.find((x) => x.id === id); if (!s) return;
+  const m = document.createElement('div'); m.className = 'modal'; document.body.appendChild(m);
+  const close = () => { m.remove(); home(); };
+  async function draw(note, bad) {
+    let st; try { st = await api('/schools/' + id + '/kcb'); } catch (x) { m.remove(); alert(x.message); return; }
+    m.innerHTML = `<div class="box" style="max-width:520px;max-height:92vh;overflow:auto"><h2>KCB for ${esc(s.name)}</h2>
+      <p class="muted" style="margin-top:0">KCB account: <b>${st.connected ? esc(st.account_number) : 'not saved'}</b><br>
+      KCB signs every message it sends us, and our server checks it with KCB's public key, so there is no password to generate. The only thing we save is the school's account (or Vooma till) number. Every save needs your owner password and is written to the school's activity log as "Zuvy Technologies".</p>
+      <label>KCB account or Vooma till number</label><input id="ka" autocomplete="off" inputmode="text">
+      <label>Your owner password (needed for every save)</label><input id="kpw" type="password" autocomplete="current-password">
+      ${st.two_step ? '<label>6-digit code from your app</label><input id="kc" inputmode="numeric" autocomplete="one-time-code">' : ''}
+      <div class="acts" style="margin:0 0 6px"><button id="kb">${st.connected ? 'Replace account number' : 'Save account number'}</button></div>
+      <p class="muted">The request letter to KCB and the address KCB must send payments to are on the school's own <b>Bank connections</b> page, under <b>Show details</b>.${st.connected ? ' Replacing an account number can only be done once every 10 minutes.' : ''}</p>
+      <div class="err" id="kmsg" style="color:${bad ? 'var(--rust)' : 'var(--teal)'}">${esc(note || '')}</div>
+      <div class="row"><button class="ghost" id="kx">Close</button></div></div>`;
+    m.querySelector('#kx').onclick = close;
+    m.querySelector('#kb').onclick = async () => {
+      const msg = (t, isBad) => { const q = m.querySelector('#kmsg'); q.textContent = t; q.style.color = isBad ? 'var(--rust)' : 'var(--teal)'; };
+      if (!(await ask({ title: (st.connected ? 'Replace' : 'Save') + ' the KCB account number?', text: 'For ' + s.name + '.' + (st.connected ? ' Payments sent to the old number will no longer be matched to this school.' : ''), word: st.connected ? 'RESET' : 'SAVE', danger: st.connected }))) return;
+      try {
+        await api('/schools/' + id + '/kcb', { account_number: m.querySelector('#ka').value, owner_password: m.querySelector('#kpw').value, code: m.querySelector('#kc') ? m.querySelector('#kc').value : '', confirm_text: st.connected ? 'RESET' : '' });
+        draw('Saved. KCB is now switched on for this school.');
+      } catch (x) { msg(x.message, true); }
+    };
+  }
+  await draw();
+}
+
 function wireSchools() {
   document.querySelectorAll('[data-do]').forEach((b) => {
     b.onclick = async () => {
@@ -320,6 +351,8 @@ function wireSchools() {
         } else if (b.dataset.do === 'resume') {
           if (!(await ask({ title: 'Resume ' + s.name + '?', text: 'Staff will be able to sign in again.', ok: 'Resume school' }))) return;
           await api('/schools/' + id + '/pause', { paused: false }); home();
+        } else if (b.dataset.do === 'kcb') {
+          kcbPanel(id);
         } else if (b.dataset.do === 'mpesa') {
           mpesaPanel(id);
         } else if (b.dataset.do === 'addch') {

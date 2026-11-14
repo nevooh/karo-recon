@@ -10,6 +10,7 @@ const { createSchoolWithAdmin, normalizeEmail, generatePassword } = require('./s
 const { CHANNELS, ensureSelected } = require('./channels');
 const { saveMpesaKeys, validateKeysInput, checkKeys, registerForSchool } = require('./mpesaSetup');
 const { passkeyState, savePasskey } = require('./mpesaPasskey');
+const { connectSchoolToBank, listSchoolBankConnections } = require('./bankConnections');
 const totp = require('./totp');
 const { encrypt, decrypt } = require('../security/crypto');
 
@@ -104,11 +105,13 @@ async function setSchoolPaused(schoolId, paused, db = pool) {
 }
 
 // Switch a bank (or M-Pesa) on for a school. This only makes it visible; the school still does its own set-up.
-async function addSchoolChannel(schoolId, channel, db = pool) {
+async function addSchoolChannel(schoolId, channel, ip = null, db = pool) {
   if (!Number.isInteger(schoolId)) throw refuse('School not found.', 404);
   if (!CHANNELS.includes(channel)) throw refuse('Unknown bank or channel.');
   if (!(await db.query('SELECT 1 FROM schools WHERE id = $1', [schoolId])).rowCount) throw refuse('School not found.', 404);
   await ensureSelected(schoolId, channel);
+  const now = (await db.query('SELECT channel FROM school_channels WHERE school_id = $1 ORDER BY channel', [schoolId])).rows.map((x) => x.channel);
+  await auditStrict({ schoolId, action: 'channels_changed', detail: { selected: now }, ip });   // the school's activity log shows it as Zuvy Technologies
   return { ok: true };
 }
 
@@ -205,6 +208,51 @@ async function ownerRegisterMpesa({ owner, ip, schoolId, dry, confirmPaybill, pa
   return { ok: true, preview: result.preview };
 }
 
+// ---- Bank connections on a school's behalf (same rules as the school's own reset rules, plus the owner checks above) ----
+const COOLDOWN_MINUTES = 10;
+async function existingConnection(schoolId, bank) {
+  return (await pool.query(
+    `SELECT sbc.id, sbc.last_rotated_at FROM school_bank_connections sbc JOIN bank_providers bp ON bp.id = sbc.provider_id WHERE sbc.school_id = $1 AND bp.code = $2`,
+    [schoolId, bank])).rows[0] || null;
+}
+// One single statement claims the slot, so two people pressing at the same moment cannot both get through.
+async function claimRotationSlot(conn) {
+  const claim = await pool.query(
+    `UPDATE school_bank_connections SET last_rotated_at = NOW() WHERE id = $1 AND (last_rotated_at IS NULL OR last_rotated_at <= NOW() - make_interval(mins => $2)) RETURNING id`,
+    [conn.id, COOLDOWN_MINUTES]);
+  if (!claim.rows.length) {
+    const w = (await pool.query(`SELECT CEIL(EXTRACT(EPOCH FROM (last_rotated_at + make_interval(mins => $2) - NOW())) / 60)::int AS mins FROM school_bank_connections WHERE id = $1`, [conn.id, COOLDOWN_MINUTES])).rows[0];
+    const wait = Math.max((w && w.mins) || 1, 1);
+    throw refuse(`This was changed a moment ago. Wait ${wait} minute${wait === 1 ? '' : 's'} before changing it again.`, 429);
+  }
+  return async () => { await pool.query('UPDATE school_bank_connections SET last_rotated_at = $2 WHERE id = $1', [conn.id, conn.last_rotated_at]); };
+}
+
+async function kcbState(schoolId) {
+  if (!Number.isInteger(schoolId)) throw refuse('School not found.', 404);
+  const row = (await listSchoolBankConnections(schoolId)).find((c) => c.code === 'kcb');
+  return { connected: !!row, account_number: row ? row.account_number : null };
+}
+
+async function ownerSaveKcb({ owner, ip, schoolId, accountNumber, password, confirmText, code }) {
+  const num = String(accountNumber == null ? '' : accountNumber).replace(/\s+/g, '');         // spaces would stop it matching the bank's message
+  if (!/^[A-Za-z0-9]{4,24}$/.test(num)) throw refuse('Enter the KCB account (or Vooma till) number using letters and numbers only, 4 to 24 characters.');
+  if (!(await pool.query('SELECT 1 FROM schools WHERE id = $1', [schoolId])).rowCount) throw refuse('School not found.', 404);
+  if ((await pool.query(`SELECT 1 FROM school_bank_connections sbc JOIN bank_providers bp ON bp.id = sbc.provider_id WHERE bp.code = 'kcb' AND sbc.account_number = $1 AND sbc.school_id <> $2 LIMIT 1`, [num, schoolId])).rowCount) {
+    throw refuse('That account number is already used by another school.', 409);
+  }
+  const conn = await existingConnection(schoolId, 'kcb');
+  if (conn && String(confirmText || '').trim().toUpperCase() !== 'RESET') throw refuse('Type RESET to replace an account number that is already saved.');
+  await reauth(owner.id, password, ip, code);
+  const rollback = conn ? await claimRotationSlot(conn) : async () => {};
+  try {
+    await connectSchoolToBank({ schoolId, providerCode: 'kcb', accountNumber: num, credentials: {} });
+  } catch (e) { await rollback(); throw e; }                       // if it fails, give the slot back
+  await ensureSelected(schoolId, 'kcb');
+  await auditStrict({ schoolId, action: conn ? 'credentials_rotated' : 'credentials_created', detail: { bank: 'kcb' }, ip });
+  return { ok: true, replaced: !!conn };
+}
+
 // ---- Two-step sign-in for the owner ----
 async function twoStepEnabled(ownerId) {
   const r = (await pool.query('SELECT totp_enabled FROM platform_owners WHERE id = $1', [ownerId])).rows[0];
@@ -234,4 +282,4 @@ async function twoStepDisable(owner, ip, password, code) {
   return { ok: true };
 }
 
-module.exports = { createOwner, login, listSchools, addSchool, listApplications, updateApplication, resetAdminPassword, setSchoolPaused, addSchoolChannel, mpesaState, ownerSaveMpesaKeys, ownerSavePasskey, ownerCheckMpesa, ownerRegisterMpesa, twoStepEnabled, twoStepStart, twoStepEnable, twoStepDisable };
+module.exports = { createOwner, login, listSchools, addSchool, listApplications, updateApplication, resetAdminPassword, setSchoolPaused, addSchoolChannel, mpesaState, ownerSaveMpesaKeys, ownerSavePasskey, ownerCheckMpesa, ownerRegisterMpesa, twoStepEnabled, twoStepStart, twoStepEnable, twoStepDisable, kcbState, ownerSaveKcb };
