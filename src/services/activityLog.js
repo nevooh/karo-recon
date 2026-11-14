@@ -165,7 +165,7 @@ async function listActivity(schoolId, o = {}, db = pool) {
     const g = GROUP_OF[r.action] || 'setup';
     const x = describe(r.action, r.detail, ctx);
     return { id: r.id, when: r.created_at, group: g, tone: BAD.has(r.action) ? 'bad' : 'ok', action: r.action, text: x.text, extra: x.extra, student_id: x.studentId || null,
-      who: r.actor_name ? { id: r.staff_id, name: r.actor_name, label: r.actor_owner ? 'Main Admin' : (r.actor_role === 'admin' ? 'Admin' : 'Staff') } : { id: null, name: 'System', label: '' },
+      who: r.actor_name ? { id: r.staff_id, name: r.actor_name, label: r.actor_owner ? 'Main Admin' : (r.actor_role === 'admin' ? 'Admin' : 'Staff') } : ((r.detail && r.detail.by === 'zuvy') ? { id: null, name: 'Zuvy Technologies', label: 'Setup help' } : { id: null, name: 'System', label: '' }),
       ip: r.ip || null };
   });
   const people = (await db.query(`SELECT id, full_name FROM staff WHERE school_id = $1 AND status <> 'removed' ORDER BY lower(full_name)`, [schoolId])).rows.map((x) => ({ id: x.id, name: x.full_name }));

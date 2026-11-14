@@ -30,14 +30,14 @@ function checkPasskeyShape(text) {
   return p;
 }
 
-async function savePasskey(schoolId, passkeyText, { replace = false, staffId = null } = {}, deps = {}) {
+async function savePasskey(schoolId, passkeyText, { replace = false, staffId = null, by = null } = {}, deps = {}) {
   const db = deps.pool || pool;
   const st = await passkeyState(schoolId, deps);
   if (!st.shortcode || !st.hasKeys) throw refuse(`${st.name} has no M-Pesa Paybill and keys saved yet. Set up M-Pesa first, then add the passkey.`, 409);
   if (st.hasPasskey && !replace) throw refuse(`${st.name} already has a passkey. To change it, run again with --replace.`, 409);
   const p = checkPasskeyShape(passkeyText);
   await db.query('UPDATE schools SET mpesa_passkey_enc = $1 WHERE id = $2', [encrypt(p), st.id]);
-  await logAudit({ schoolId: st.id, staffId, action: st.hasPasskey ? 'mpesa_keys_replaced' : 'mpesa_keys_saved', detail: { what: 'stk passkey' } });
+  await logAudit({ schoolId: st.id, staffId, action: st.hasPasskey ? 'mpesa_keys_replaced' : 'mpesa_keys_saved', detail: { what: 'stk passkey', ...(by ? { by } : {}) } });
   return { school: st.name, replaced: st.hasPasskey };
 }
 

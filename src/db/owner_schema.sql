@@ -27,3 +27,6 @@ CREATE TABLE IF NOT EXISTS school_applications (
   note TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- A paused school: its staff cannot sign in. Payments keep being recorded.
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS suspended_at TIMESTAMPTZ;

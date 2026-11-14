@@ -31,7 +31,7 @@ router.post('/login', async (req, res) => {
   if (mins) return res.status(429).json({ error: lockedMessage(mins) });
 
   // 2. Check the password.
-  const result = await pool.query(`SELECT * FROM staff WHERE lower(email) = $1 AND status = 'active'`, [key]);   // capitals in the email do not matter
+  const result = await pool.query(`SELECT st.*, sc.suspended_at FROM staff st JOIN schools sc ON sc.id = st.school_id WHERE lower(st.email) = $1 AND st.status = 'active'`, [key]);   // capitals in the email do not matter
   const staff = result.rows[0];
   const valid = staff ? await verifyPassword(password, staff.password_hash) : false;
 
@@ -45,6 +45,9 @@ router.post('/login', async (req, res) => {
     }
     return res.status(401).json({ error: 'Invalid email or password' });
   }
+
+  // A paused school cannot sign in (its payments are still being recorded).
+  if (staff.suspended_at) return res.status(403).json({ error: "This school's account is paused. Please contact Zuvy Technologies." });
 
   // 4. Right: clear the count, record the login, hand over the token.
   await clearFailures(key);

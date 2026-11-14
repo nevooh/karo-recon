@@ -191,7 +191,7 @@ async function checkKeys(schoolId, deps = {}) {
  *   3. only if Safaricom confirms: the pending code becomes the school's code, and the date is recorded
  *      if Safaricom refuses or cannot be reached: the pending code is thrown away
  */
-async function registerForSchool({ schoolId, staffId = null, base, dry = false, force = false }, deps = {}) {
+async function registerForSchool({ schoolId, staffId = null, base, dry = false, force = false, by = null }, deps = {}) {
   const getCreds = deps.getCredentials || getSchoolCredentials;
   const register = deps.register || mpesa.registerC2BUrls;
   const makeToken = deps.generateToken || generateUrlToken;
@@ -246,7 +246,7 @@ async function registerForSchool({ schoolId, staffId = null, base, dry = false, 
     `UPDATE schools SET mpesa_url_token_enc = mpesa_url_token_pending_enc, mpesa_url_token_pending_enc = NULL,
             mpesa_urls_registered_at = NOW(), mpesa_urls_registered_base = $2 WHERE id = $1`,
     [schoolId, origin]);
-  await logAudit({ schoolId, staffId, action: 'mpesa_urls_registered', detail: { base: origin, forced: Boolean(force) } });
+  await logAudit({ schoolId, staffId, action: 'mpesa_urls_registered', detail: { base: origin, forced: Boolean(force), ...(by ? { by } : {}) } });
   return { dry: false, school, data, preview: maskedUrls(urls) };
 }
 

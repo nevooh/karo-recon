@@ -1,24 +1,58 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><title>Zuvy Owner</title>
+<meta name="robots" content="noindex"><meta name="theme-color" content="#F3EDDF">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>Zuvy Owner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box}body{margin:0;font:15px system-ui,sans-serif;background:#f4f6f8;color:#1a2330}
-.wrap{max-width:860px;margin:0 auto;padding:16px}
-.card{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px #0002}
-h1{font-size:20px;margin:0 0 12px}h2{font-size:16px;margin:0 0 12px}
-input{width:100%;padding:10px;margin:4px 0 12px;border:1px solid #c7cfd8;border-radius:8px;font:inherit}
-button{background:#0b6b4f;color:#fff;border:0;padding:10px 16px;border-radius:8px;font:inherit;cursor:pointer}
-button.ghost{background:#e6ebf0;color:#1a2330}
-.err{color:#b00020;margin:8px 0}.ok{background:#e8f6ee;border:1px solid #9bd3b4;padding:12px;border-radius:8px;margin-top:12px}
-table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid #e3e8ee}
-.tag{background:#e6ebf0;border-radius:99px;padding:2px 8px;font-size:12px}button.sm{padding:6px 10px;font-size:13px;margin:6px 6px 0 0}.n{text-align:right}.top{display:flex;justify-content:space-between;align-items:center}
-code{font-size:16px;background:#fff;padding:2px 6px;border-radius:4px;user-select:all}
-.tbl{overflow-x:auto}.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}@media(max-width:640px){.grid{grid-template-columns:1fr}}
+:root{--bg:#F3EDDF;--surface:#FBF8EF;--raised:#EDE6D5;--line:#E0D8C2;--ink:#1B2A4A;--muted:#5B5F73;--teal:#2F6F62;--gold:#8F6A21;--rust:#B5482A;--navy:#1B2A4A}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14.5px/1.5 'IBM Plex Sans',system-ui,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:18px 16px 70px}
+h1{font:700 26px 'Fraunces',serif;margin:0}
+h2{font:700 18px 'Fraunces',serif;margin:0 0 12px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+label{display:block;font-size:12.5px;font-weight:600;margin:0 0 4px}
+input,select,textarea{width:100%;font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);margin:0 0 12px}
+input:focus,select:focus,textarea:focus{outline:2px solid rgba(47,111,98,.35);border-color:var(--teal)}
+textarea{min-height:56px;resize:vertical}
+button{font:600 14px 'IBM Plex Sans',sans-serif;background:var(--teal);color:#FFFDF8;border:0;padding:9px 15px;border-radius:8px;cursor:pointer}
+button.ghost{background:var(--raised);color:var(--ink)}button.danger{background:var(--rust)}
+button.sm{padding:6px 11px;font-size:13px}button[disabled]{opacity:.6;cursor:default}
+.err{color:var(--rust);min-height:1px;margin:6px 0;font-size:13.5px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.tile b{display:block;font:700 26px 'Fraunces',serif}.tile span{color:var(--muted);font-size:13px}
+.tile.warn b{color:var(--rust)}
+@media(max-width:700px){.tiles{grid-template-columns:1fr 1fr}}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.chip{background:var(--raised);color:var(--ink);padding:5px 12px;border-radius:99px;font-size:13px;border:0;font-weight:500}
+.chip.on{background:var(--navy);color:#fff}
+.tag{display:inline-block;border-radius:99px;padding:2px 9px;font-size:12px;font-weight:600;background:var(--raised);color:var(--ink);margin:0 4px 4px 0}
+.tag.ok{background:rgba(47,111,98,.15);color:var(--teal)}.tag.warn{background:rgba(184,134,47,.2);color:var(--gold)}.tag.bad{background:rgba(181,72,42,.15);color:var(--rust)}
+.app{border-top:1px solid var(--line);padding:14px 0}
+.app small,.muted{color:var(--muted)}
+.demand{background:var(--raised);border-radius:10px;padding:9px 12px;margin:0 0 12px;font-size:13.5px}
+.schools{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:820px){.schools{grid-template-columns:1fr}}
+.school{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.school h3{font:700 17px 'Fraunces',serif;margin:0 0 2px}
+.kv{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding:6px 0;font-size:13.5px}.kv span:first-child{color:var(--muted)}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;align-items:center}.acts select{width:auto;margin:0;padding:6px 8px;font-size:13px}
+code{font-size:17px;background:#fff;padding:3px 8px;border-radius:6px;user-select:all;word-break:break-all}
+.ok-box{background:rgba(47,111,98,.1);border:1px solid rgba(47,111,98,.4);padding:14px;border-radius:10px;margin-bottom:16px}
+.modal{position:fixed;inset:0;background:rgba(27,42,74,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.box{background:var(--surface);border-radius:14px;padding:22px;max-width:420px;width:100%}
+.box .row{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
 </style></head><body><div class="wrap" id="app"></div>
 <script>
 const app = document.getElementById('app');
 let token = ''; try { token = sessionStorage.getItem('ownerToken') || ''; } catch (e) {}
-const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const BANKS = { mpesa: 'M-Pesa', kcb: 'KCB', equity: 'Equity', coop: 'Co-op' };
+let ap = { applications: [], new_count: 0 }, schools = [], appFilter = 'all';
+
 async function api(path, body) {
   const r = await fetch('/api/owner' + path, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: body ? JSON.stringify(body) : undefined });
   const j = await r.json().catch(() => ({}));
@@ -27,55 +61,221 @@ async function api(path, body) {
   return j;
 }
 function signOut() { token = ''; try { sessionStorage.removeItem('ownerToken'); } catch (e) {} login(); }
+
+/* ---- small helpers ---- */
+function ago(ts) {
+  if (!ts) return null;
+  const m = Math.max(0, Math.round((Date.now() - new Date(ts).getTime()) / 60000));
+  if (m < 2) return 'just now'; if (m < 60) return m + ' minutes ago';
+  const h = Math.round(m / 60); if (h < 24) return h + (h === 1 ? ' hour ago' : ' hours ago');
+  const d = Math.round(h / 24); return d + (d === 1 ? ' day ago' : ' days ago');
+}
+const daysSince = (ts) => (ts ? (Date.now() - new Date(ts).getTime()) / 86400000 : null);
+const waNum = (p) => String(p || '').replace(/[^0-9]/g, '').replace(/^0/, '254');
+
+// One box for every serious action. word = the typed word, if one is needed.
+function ask(o) {
+  return new Promise((res) => {
+    const m = document.createElement('div'); m.className = 'modal';
+    m.innerHTML = `<div class="box"><h2>${esc(o.title)}</h2><p>${esc(o.text || '')}</p>` +
+      (o.word ? `<label>Type ${esc(o.word)} to continue</label><input id="mw" autocomplete="off" placeholder="${esc(o.word)}">` : '') +
+      `<div class="err" id="me"></div><div class="row"><button class="ghost" id="mc">Cancel</button><button id="mo" class="${o.danger ? 'danger' : ''}">${esc(o.ok || 'Continue')}</button></div></div>`;
+    document.body.appendChild(m);
+    const close = (v) => { m.remove(); res(v); };
+    m.querySelector('#mc').onclick = () => close(false);
+    m.onclick = (e) => { if (e.target === m) close(false); };
+    m.querySelector('#mo').onclick = () => {
+      if (o.word && m.querySelector('#mw').value.trim().toUpperCase() !== o.word) { m.querySelector('#me').textContent = 'Please type ' + o.word + ' to continue.'; return; }
+      close(true);
+    };
+  });
+}
+// A box that just shows something once (a new password).
+function show(title, html) {
+  const m = document.createElement('div'); m.className = 'modal';
+  m.innerHTML = `<div class="box"><h2>${esc(title)}</h2>${html}<div class="row"><button id="mo">Done</button></div></div>`;
+  document.body.appendChild(m); m.querySelector('#mo').onclick = () => m.remove();
+}
+
 function login(msg) {
-  app.innerHTML = `<div class="card" style="max-width:380px;margin:60px auto"><h1>Zuvy Owner</h1>
-  <label>Email<input id="e" type="email" autocomplete="username"></label>
-  <label>Password<input id="p" type="password" autocomplete="current-password"></label>
+  app.innerHTML = `<div class="card" style="max-width:380px;margin:60px auto"><h1 style="margin-bottom:14px">Zuvy Owner</h1>
+  <label>Email</label><input id="e" type="email" autocomplete="username">
+  <label>Password</label><input id="p" type="password" autocomplete="current-password">
   <button id="go">Sign in</button><div class="err" id="m">${esc(msg || '')}</div></div>`;
   const go = async () => { try { const j = await api('/login', { email: e.value, password: p.value }); token = j.token; try { sessionStorage.setItem('ownerToken', token); } catch (x) {} home(); } catch (x) { m.textContent = x.message; } };
   document.getElementById('go').onclick = go; p.onkeydown = (ev) => { if (ev.key === 'Enter') go(); };
 }
-async function home(created) {
-  let d; try { d = await api('/schools'); } catch (x) { return login(x.message); }
-  let ap = { applications: [], new_count: 0 }; try { ap = await api('/applications'); } catch (x) { /* the page still works without the list */ }
-  const stLabel = { new: 'New', contacted: 'Contacted', accepted: 'Accepted', declined: 'Declined' };
-  const waNum = (p) => String(p || '').replace(/[^0-9]/g, '').replace(/^0/, '254');
-  const appsHtml = `<div class="card"><h2>Applications${ap.new_count ? ' (' + ap.new_count + ' new)' : ''}</h2>` + (ap.applications.map((a) => `<div style="border-top:1px solid #e3e8ee;padding:12px 0">
-      <b>${esc(a.school_name)}</b> <small>${esc(a.town || '')}</small> <span class="tag">${stLabel[a.status] || esc(a.status)}</span><br>
+
+/* ---- what needs attention at a school ---- */
+function flags(s) {
+  const f = [];
+  if (s.suspended_at) f.push(['bad', 'Paused']);
+  const age = daysSince(s.created_at);
+  if (s.admin_status === 'active' && !s.admin_last_login && age > 2) f.push(['warn', 'Admin has not signed in yet']);
+  if ((s.channels || []).length && s.students > 0 && !s.suspended_at) {
+    const last = daysSince(s.last_payment_at);
+    if (last === null && age > 14) f.push(['warn', 'No payment has arrived yet']);
+    else if (last !== null && last > 14) f.push(['warn', 'Quiet: no payments in ' + Math.floor(last) + ' days']);
+  }
+  if (s.in_review > 0) f.push(['warn', s.in_review + ' waiting in review']);
+  return f;
+}
+
+function schoolHtml(s) {
+  const fl = flags(s), have = s.channels || [];
+  const addable = Object.keys(BANKS).filter((k) => !have.includes(k));
+  const last = ago(s.last_payment_at);
+  return `<div class="school" id="sc${s.id}"><h3>${esc(s.name)}</h3>
+    <div style="margin:4px 0 8px">${fl.length ? fl.map((x) => `<span class="tag ${x[0]}">${esc(x[1])}</span>`).join('') : '<span class="tag ok">All good</span>'}</div>
+    <div class="kv"><span>Main admin</span><span style="text-align:right">${esc(s.admin_name || '-')}<br><small>${esc(s.admin_email || '')}</small></span></div>
+    <div class="kv"><span>Last sign-in</span><span>${s.admin_last_login ? esc(ago(s.admin_last_login)) : 'Never'}</span></div>
+    <div class="kv"><span>Students</span><span>${s.students}</span></div>
+    <div class="kv"><span>Bank and M-Pesa</span><span style="text-align:right">${have.length ? have.map((c) => esc(BANKS[c] || c)).join(', ') : 'None switched on'}</span></div>
+    <div class="kv"><span>Last payment</span><span>${last ? esc(last) : 'None yet'}</span></div>
+    <div class="kv"><span>Payments, last 14 days</span><span>${s.payments_14d}</span></div>
+    <div class="acts">
+      <button class="ghost sm" data-do="reset" data-id="${s.id}">Reset admin password</button>
+      <button class="ghost sm" data-do="mpesa" data-id="${s.id}">M-Pesa set-up</button>
+      ${s.suspended_at ? `<button class="sm" data-do="resume" data-id="${s.id}">Resume school</button>` : `<button class="ghost sm" data-do="pause" data-id="${s.id}">Pause school</button>`}
+    </div>
+    ${addable.length ? `<div class="acts"><select id="ch${s.id}">${addable.map((k) => `<option value="${k}">${esc(BANKS[k])}</option>`).join('')}</select><button class="ghost sm" data-do="addch" data-id="${s.id}">Switch on</button></div>` : ''}
+  </div>`;
+}
+
+function appsHtml() {
+  const list = ap.applications.filter((a) => appFilter === 'all' || a.status === appFilter);
+  const counts = {}; ap.applications.filter((a) => a.status !== 'declined').forEach((a) => { const b = a.bank || 'Not sure'; counts[b] = (counts[b] || 0) + 1; });
+  const demand = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([b, n]) => esc(b) + ' ' + n).join(' &middot; ');
+  const lab = { new: 'New', contacted: 'Contacted', accepted: 'Accepted', declined: 'Declined' };
+  return `<div class="chips">${['all', 'new', 'contacted', 'accepted', 'declined'].map((k) => `<button class="chip ${appFilter === k ? 'on' : ''}" data-filter="${k}">${k === 'all' ? 'All' : lab[k]}</button>`).join('')}</div>` +
+    (demand ? `<div class="demand"><b>Banks asked for:</b> ${demand}</div>` : '') +
+    (list.map((a) => `<div class="app">
+      <b>${esc(a.school_name)}</b> <small>${esc(a.town || '')}</small> <span class="tag ${a.status === 'new' ? 'warn' : a.status === 'accepted' ? 'ok' : ''}">${lab[a.status] || esc(a.status)}</span><br>
       ${esc(a.contact_name)}${a.contact_role ? ' (' + esc(a.contact_role) + ')' : ''} &middot; <a href="tel:${esc(a.phone)}">${esc(a.phone)}</a> &middot; <a href="https://wa.me/${waNum(a.phone)}" target="_blank" rel="noopener">WhatsApp</a> &middot; <a href="mailto:${esc(a.email)}">${esc(a.email)}</a><br>
       <small>${esc(a.students_range || '-')} students &middot; Bank: ${esc(a.bank || '-')} &middot; Fees: ${esc(a.collects_via || '-')} &middot; Start: ${esc(a.start_when || '-')} &middot; ${esc(String(a.created_at).slice(0, 10))}</small>
-      ${a.message ? '<div style="margin-top:6px">' + esc(a.message) + '</div>' : ''}
-      <div><button class="sm ghost" data-app="${a.id}" data-act="contacted">Contacted</button><button class="sm" data-app="${a.id}" data-act="accepted">Accept</button><button class="sm ghost" data-app="${a.id}" data-act="declined">Decline</button></div>
-    </div>`).join('') || '<div>No applications yet.</div>') + '</div>';
-  app.innerHTML = `<div class="top"><h1>Schools</h1><button class="ghost" id="out">Sign out</button></div>
-  <div class="grid"><div class="card"><b>${d.total_schools}</b><br>schools</div><div class="card"><b>${d.total_students}</b><br>students in total</div></div>
-  ${appsHtml}
+      ${a.message ? `<div style="margin-top:6px">${esc(a.message)}</div>` : ''}
+      <textarea id="nt${a.id}" maxlength="500" placeholder="Your notes (only you see these)" style="margin-top:8px">${esc(a.note || '')}</textarea>
+      <div class="acts" style="margin-top:0"><button class="ghost sm" data-app="${a.id}" data-act="note">Save note</button><button class="ghost sm" data-app="${a.id}" data-act="contacted">Contacted</button><button class="sm" data-app="${a.id}" data-act="accepted">Accept</button><button class="ghost sm" data-app="${a.id}" data-act="declined">Decline</button></div>
+    </div>`).join('') || '<div class="muted">Nothing here.</div>');
+}
+
+async function home(created) {
+  let d; try { d = await api('/schools'); } catch (x) { return login(x.message); }
+  schools = d.schools;
+  try { ap = await api('/applications'); } catch (x) { /* the page still works without the list */ }
+  const attention = schools.filter((s) => flags(s).some((f) => f[0] !== 'ok')).length;
+  app.innerHTML = `<div class="top"><h1>Zuvy Owner</h1><button class="ghost" id="out">Sign out</button></div>
+  <div class="tiles">
+    <div class="tile"><b>${d.total_schools}</b><span>schools</span></div>
+    <div class="tile"><b>${d.total_students}</b><span>students in total</span></div>
+    <div class="tile ${ap.new_count ? 'warn' : ''}"><b>${ap.new_count}</b><span>new applications</span></div>
+    <div class="tile ${attention ? 'warn' : ''}"><b>${attention}</b><span>schools need a look</span></div>
+  </div>
+  ${created ? `<div class="ok-box"><b>${esc(created.school.name)}</b> was added.<br>Main admin: ${esc(created.admin.full_name)} (${esc(created.admin.email)})<br>Temporary password (shown once): <code>${esc(created.password)}</code></div>` : ''}
+  <div class="card"><h2>Applications${ap.new_count ? ' (' + ap.new_count + ' new)' : ''}</h2><div id="apps">${appsHtml()}</div></div>
   <div class="card"><h2>Add a school</h2>
-    <label>School name<input id="n"></label><label>Main admin's full name<input id="an"></label><label>Main admin's email<input id="ae" type="email"></label>
-    <button id="add">Add school</button><div class="err" id="m"></div><div id="made">${created || ''}</div></div>
-  <div class="card tbl"><table><tr><th>School</th><th>Main admin</th><th class="n">Students</th></tr>
-  ${d.schools.map((s) => `<tr><td>${esc(s.name)}</td><td>${esc(s.admin_name || '-')}<br><small>${esc(s.admin_email || '')}${s.admin_status && s.admin_status !== 'active' ? ' (' + esc(s.admin_status) + ')' : ''}</small></td><td class="n">${s.students}</td></tr>`).join('') || '<tr><td colspan="3">No schools yet.</td></tr>'}</table></div>`;
-  out.onclick = signOut;
+    <label>School name</label><input id="n"><label>Main admin's name</label><input id="an"><label>Main admin's email</label><input id="ae" type="email">
+    <button id="add">Add school</button><div class="err" id="m2"></div></div>
+  <h2 style="margin:6px 2px 12px">Schools</h2>
+  <div class="schools" id="schoolList">${schools.map(schoolHtml).join('') || '<div class="muted">No schools yet.</div>'}</div>`;
+  document.getElementById('out').onclick = signOut;
+  wireApps(); wireSchools();
+  document.getElementById('add').onclick = async () => {
+    const b = document.getElementById('add'); b.disabled = true; m2.textContent = '';
+    try { home(await api('/schools', { name: n.value, adminName: an.value, adminEmail: ae.value })); } catch (x) { m2.textContent = x.message; b.disabled = false; }
+  };
+}
+
+function wireApps() {
+  document.querySelectorAll('[data-filter]').forEach((b) => { b.onclick = () => { appFilter = b.dataset.filter; document.getElementById('apps').innerHTML = appsHtml(); wireApps(); }; });
   document.querySelectorAll('[data-app]').forEach((b) => {
     b.onclick = async () => {
-      const id = b.dataset.app, act = b.dataset.act;
+      const id = b.dataset.app, act = b.dataset.act, a = ap.applications.find((x) => String(x.id) === id); if (!a) return;
+      const note = document.getElementById('nt' + id).value;
       try {
-        await api('/applications/' + id, { status: act });
-        if (act === 'accepted') {                                   // fill the Add a school form with what they told us
-          const a = ap.applications.find((x) => String(x.id) === id);
-          if (a) { n.value = a.school_name; an.value = a.contact_name; ae.value = a.email; }
-          n.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else home();
+        await api('/applications/' + id, { status: act === 'note' ? a.status : act, note });
+        a.note = note; if (act !== 'note') a.status = act;
+        if (act === 'accepted') { n.value = a.school_name; an.value = a.contact_name; ae.value = a.email; n.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        document.getElementById('apps').innerHTML = appsHtml(); wireApps();
       } catch (x) { alert(x.message); }
     };
   });
-  add.onclick = async () => {
-    add.disabled = true;
-    try {
-      const j = await api('/schools', { name: n.value, adminName: an.value, adminEmail: ae.value });
-      home(`<div class="ok"><b>${esc(j.school.name)}</b> added.<br>Admin login: ${esc(j.admin.email)}<br>Password: <code>${esc(j.password)}</code><br><small>Shown once. Copy it and send it to the admin now. They can change it after signing in.</small></div>`);
-    } catch (x) { m.textContent = x.message; add.disabled = false; }
-  };
 }
-token ? home() : login();
+
+/* ---- M-Pesa set-up on a school's behalf. Keys go in and never come back out. ---- */
+async function mpesaPanel(id) {
+  const s = schools.find((x) => x.id === id); if (!s) return;
+  const m = document.createElement('div'); m.className = 'modal'; document.body.appendChild(m);
+  const close = () => { m.remove(); home(); };
+  async function draw(note, bad) {
+    let st; try { st = await api('/schools/' + id + '/mpesa'); } catch (x) { m.remove(); alert(x.message); return; }
+    m.innerHTML = `<div class="box" style="max-width:540px;max-height:92vh;overflow:auto"><h2>M-Pesa for ${esc(s.name)}</h2>
+      <p class="muted" style="margin-top:0">Keys: <b>${st.keys_saved ? 'saved' : 'not saved'}</b> &middot; Passkey: <b>${st.passkey_saved ? 'saved' : 'not saved'}</b> &middot; Paybill: <b>${esc(st.paybill || '-')}</b><br>
+      Saved keys are never shown again, not even to you. Every save needs your owner password and is written to the school's activity log as "Zuvy Technologies".</p>
+      <label>Paybill number</label><input id="mp" inputmode="numeric" autocomplete="off">
+      <label>Consumer key</label><input id="mk" type="password" autocomplete="new-password">
+      <label>Consumer secret</label><input id="ms" type="password" autocomplete="new-password">
+      <div class="acts" style="margin:0 0 14px"><button id="bk">${st.keys_saved ? 'Replace keys' : 'Save keys'}</button><button class="ghost" id="bt" ${st.keys_saved ? '' : 'disabled'}>Test keys</button></div>
+      <label>STK passkey (optional)</label><input id="mpk" type="password" autocomplete="new-password">
+      <div class="acts" style="margin:0 0 14px"><button class="ghost" id="bp" ${st.keys_saved ? '' : 'disabled'}>${st.passkey_saved ? 'Replace passkey' : 'Save passkey'}</button><button class="ghost" id="br" ${st.keys_saved ? '' : 'disabled'}>Register addresses with Safaricom</button></div>
+      <label>Your owner password (needed for every save)</label><input id="mpw" type="password" autocomplete="current-password">
+      <div class="err" id="mmsg" style="color:${bad ? 'var(--rust)' : 'var(--teal)'}">${esc(note || '')}</div>
+      <div class="row"><button class="ghost" id="mx">Close</button></div></div>`;
+    const val = (q) => m.querySelector(q).value;
+    const msg = (t, isBad) => { const e = m.querySelector('#mmsg'); e.textContent = t; e.style.color = isBad ? 'var(--rust)' : 'var(--teal)'; };
+    m.querySelector('#mx').onclick = close;
+    m.querySelector('#bk').onclick = async () => {
+      if (!(await ask({ title: (st.keys_saved ? 'Replace' : 'Save') + ' the M-Pesa keys?', text: 'For ' + s.name + '. The keys are stored encrypted and can never be read back.', word: st.keys_saved ? 'RESET' : 'SAVE', danger: st.keys_saved }))) return;
+      try { await api('/schools/' + id + '/mpesa/keys', { paybill: val('#mp'), consumer_key: val('#mk'), consumer_secret: val('#ms'), owner_password: val('#mpw'), confirm_text: st.keys_saved ? 'RESET' : '' }); draw('Keys saved. Now press Test keys.'); }
+      catch (x) { msg(x.message, true); }
+    };
+    m.querySelector('#bt').onclick = async () => {
+      msg('Asking Safaricom...');
+      try { const j = await api('/schools/' + id + '/mpesa/check', {}); msg(j.ok ? 'Safaricom accepted the keys.' : (j.message || 'The keys were not accepted.'), !j.ok); } catch (x) { msg(x.message, true); }
+    };
+    m.querySelector('#bp').onclick = async () => {
+      if (!(await ask({ title: (st.passkey_saved ? 'Replace' : 'Save') + ' the STK passkey?', text: 'For ' + s.name + '. It only switches on the "send request to my phone" button, and can never be read back.', word: st.passkey_saved ? 'RESET' : 'SAVE', danger: st.passkey_saved }))) return;
+      try { await api('/schools/' + id + '/mpesa/passkey', { passkey: val('#mpk'), owner_password: val('#mpw'), confirm_text: st.passkey_saved ? 'RESET' : '' }); draw('Passkey saved.'); }
+      catch (x) { msg(x.message, true); }
+    };
+    m.querySelector('#br').onclick = async () => {
+      try {
+        const j = await api('/schools/' + id + '/mpesa/register', { dry: true });
+        const pv = (j.preview && typeof j.preview === 'object') ? Object.values(j.preview).filter((x) => typeof x === 'string').join(' · ') : String(j.preview || '');
+        if (!(await ask({ title: 'Register with Safaricom?', text: 'Safaricom will be told where to send ' + s.name + '\'s payments (' + pv + '). Type the Paybill number to confirm.', word: String(st.paybill || ''), ok: 'Register', danger: true }))) return;
+        await api('/schools/' + id + '/mpesa/register', { confirm_paybill: st.paybill, owner_password: val('#mpw') }); draw('Registered with Safaricom.');
+      } catch (x) { msg(x.message, true); }
+    };
+  }
+  await draw();
+}
+
+function wireSchools() {
+  document.querySelectorAll('[data-do]').forEach((b) => {
+    b.onclick = async () => {
+      const id = Number(b.dataset.id), s = schools.find((x) => x.id === id); if (!s) return;
+      try {
+        if (b.dataset.do === 'reset') {
+          if (!(await ask({ title: 'Reset the main admin\'s password?', text: 'A new password is made for ' + (s.admin_name || 'the main admin') + ' at ' + s.name + '. They are signed out everywhere and must use the new one.', word: 'RESET', ok: 'Reset password', danger: true }))) return;
+          const j = await api('/schools/' + id + '/reset-admin', {});
+          show('New password', '<p>For ' + esc(j.admin.full_name) + ' (' + esc(j.admin.email) + '). It is shown only once, so copy it now:</p><p><code>' + esc(j.password) + '</code></p>');
+        } else if (b.dataset.do === 'pause') {
+          if (!(await ask({ title: 'Pause ' + s.name + '?', text: 'Nobody at the school can sign in, and everyone is signed out. Payments keep being recorded. You can resume it any time.', word: 'PAUSE', ok: 'Pause school', danger: true }))) return;
+          await api('/schools/' + id + '/pause', { paused: true }); home();
+        } else if (b.dataset.do === 'resume') {
+          if (!(await ask({ title: 'Resume ' + s.name + '?', text: 'Staff will be able to sign in again.', ok: 'Resume school' }))) return;
+          await api('/schools/' + id + '/pause', { paused: false }); home();
+        } else if (b.dataset.do === 'mpesa') {
+          mpesaPanel(id);
+        } else if (b.dataset.do === 'addch') {
+          const ch = document.getElementById('ch' + id).value;
+          if (!(await ask({ title: 'Switch on ' + BANKS[ch] + '?', text: 'It will appear on ' + s.name + '\'s Bank connections page. The school still does its own set-up.', ok: 'Switch on' }))) return;
+          await api('/schools/' + id + '/channel', { channel: ch }); home();
+        }
+      } catch (x) { alert(x.message); }
+    };
+  });
+}
+
+if (token) home(); else login();
 </script></body></html>
